@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
 
     int startValue = atoi(argv[2]);
     int numberToCompute = 10;
+
     if (argc == 4)
         numberToCompute = atoi(argv[3]);
     ofstream out;
@@ -68,8 +69,12 @@ int main(int argc, char *argv[]) {
     out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
     int instanceStart = numberToCompute/p;
-    if(id == 0) {
-        instanceStart += numberToCompute%p;
+    if(id < numberToCompute%p) {
+        instanceStart += 1;
+
+        if(id != 0) {
+            startValue += id*instanceStart;
+        }
     } else {
         startValue += numberToCompute%p+id*instanceStart;
     }
