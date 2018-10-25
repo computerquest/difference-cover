@@ -7,22 +7,34 @@
 #include <stdlib.h>
 #include <iomanip>
 #include <iostream>
+#include <string>
+#include <algorithm>
 #include <mpi.h>
 
 using namespace std;
 
 void cover(const int p, ofstream &out);
+void print(const int p, string * differenceCover, ofstream& out);
+inline int size(const int * cover, const int p);
+int isCover(string cover, const int p);
 
-int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover);
+string comb(const int P, const int K)
+{
+	std::string bitmask(K, 1); // K leading 1's
+	bitmask.resize(P, 0); // N-K trailing 0's
+						  // print integers and permute bitmask
+	do {
+		if (!bitmask[1]) {
+			return "";
+		}
 
-int choose(const int p, int dSize, int *pattern, int &beginning);
+		if (isCover(bitmask, P)) {
+			return bitmask;
+		}
+	} while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
-int isCover(const int p, const int *differenceCover, int *testCover);
-
-void print(const int p, const int *differenceCover, ofstream &out);
-
-inline int size(const int *cover, const int p);
-
+	return "";
+}
 
 int id; //the id of this process
 int ierr;
@@ -88,116 +100,63 @@ int main(int argc, char *argv[]) {
 } // end main
 
 void cover(const int p, ofstream &out) {
-    // The min is the smallest possible difference cover of a set of size p.
-    int min = 1;
-    for (int x = 2; x < p; x++)
-        if (x * (x - 1) + 1 >= p) {
-            min = x;
-            break;
-        } // end if
+	// The min is the smallest possible difference cover of a set of size p.
+	int min = 1;
+	for (int x = 2; x < p; x++) {
+		if (x * (x - 1) + 1 >= p) {
+			min = x;
+			break;
+		} // end if
+	}
+	// The max is the largest possible difference cover of a set of size p.
+	int max = p;
+	for (int x = 2; x < p / 2; x++) {
+		if (x * x > p) {
+			max = 3 * (p + x - 1) / (2 * (x - 1)) + 4;
+			break;
+		} // end if
+	}
 
-    // The max is the largest possible difference cover of a set of size p.
-    int max = p;
-    for (int x = 2; x < p / 2; x++)
-        if (x * x > p) {
-            max = 3 * (p + x - 1) / (2 * (x - 1)) + 4;
-            break;
-        } // end if
+	string ans = "";
+	for (int x = min; x <= max; x++) {
+		ans = comb(p, x);
+		if (ans != "") {
+			print(p, ans, out);
+			return;
+		} // end if
+	}
+} // end cove
 
-    int *differenceCover = new int[p];
-    int *testCover = new int[p];
-    for (int x = min; x <= max; x++)
-        if (coverOfSize(p, x, differenceCover, testCover)) {
-            print(p, differenceCover, out);
-            break;
-        } // end if
-    delete[] differenceCover;
-    delete[] testCover;
-} // end cover
+int isCover(string cover, const int p) {
+	int * testCover = new int[p];
 
-int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
-    // differenceCover is an array that stores the current pattern generated
-    int beginning = 1;
-    while (choose(p, dSize, differenceCover, beginning))
-        if (isCover(p, differenceCover, testCover))
-            return 1;
-    return 0;
-} // end coverOfSize
+	//this does all the mod operations to find which numbers are generated
+	testCover[0] = 1;
+	for (int x = 0; x < p - 1; x++)
+		if (cover[x])
+			for (int y = x + 1; y < p; y++)
+				if (cover[y]) {
+					// testCover[(x - y + p) % p] = 1;
+					// testCover[(y - x + p) % p] = 1;
+					// Use below instead of the above, since y > x, (y-x) < p, and (y-x)%p + (x-y)%p = p x=0 y=2 n=100 2+98 so works
+					int q = y - x;
+					testCover[q] = testCover[p - q] = 1;
+					// testCover[p - q] = 1;
+				} // end if
 
-int choose(const int p, int dSize, int *pattern, int &beginning) {
-    static int index;
-    if (beginning) {
-        for (int x = 0; x < p; x++)
-            pattern[x] = 0;
-        for (int x = 0; x < dSize - 1; x++)
-            pattern[x] = 1;
-        pattern[p - 1] = 1;
-        index = p - 1;
-        beginning = 0;
-        return 1;
-    }
+	if (size(testCover, p) == p) { //could optimize so it can exit early if there is a zero
+		delete[] testCover;
+		return 1;
+	}
 
-    if (pattern[index - 1] == 0) {
-        pattern[index] = 0;
-        pattern[--index] = 1;
-        return 1;
-    } // end if
-    else if (index != p - 1) { // && pattern[index - 1] == 1)
-        pattern[--index] = 0;
-        pattern[p - 1] = 1;
-        index = p - 1;
-        return 1;
-    } // end else if
-    else { // pattern[index - 1] == 1 && index == p - 1
-        int flipCount = 0;
-        while (pattern[--index]) {
-            pattern[index] = 0;
-            flipCount++;
-        } // end while
-        while (index > 0 && !pattern[--index]);
-        if (index == 0)
-            return 0;
-        else {
-            pattern[index] = 0;
-            flipCount++;
-            for (int y = 1; y <= flipCount; y++)
-                pattern[index + y] = 1;
-            index = p - 1;
-            return 1;
-        } // end else
-    } // end else
-} // end choose
+	delete[] testCover;
+	return 0;
+}
 
-int isCover(const int p, const int *differenceCover, int *testCover) {
-    // Takes half the time, unless the double pointer casting takes too long. (Check this.)
-    double *temp = (double *) testCover;
-    for (int x = 0; x < p / 2; x++)
-        temp[x] = 0;
-    // Faster to not check if it is even or not.
-    testCover[p - 1] = 0;
-
-    testCover[0] = 1;
-    for (int x = 0; x < p - 1; x++)
-        if (differenceCover[x])
-            for (int y = x + 1; y < p; y++)
-                if (differenceCover[y]) {
-                    // testCover[(x - y + p) % p] = 1;
-                    // testCover[(y - x + p) % p] = 1;
-                    // Use below instead of the above, since y > x, (y-x) < p, and (y-x)%p + (x-y)%p = p
-                    int q = y - x;
-                    testCover[q] = testCover[p - q] = 1;
-                    // testCover[p - q] = 1;
-                } // end if
-
-    if (size(testCover, p) == p)
-        return 1;
-    return 0;
-} // end isCover
-
-void print(const int p, const int *differenceCover, ofstream &out) {
+void print(const int p, string differenceCover, ofstream &out) {
     cout << setw(4) << p;
     out << setw(4) << p;
-    int f = size(differenceCover, p);
+    int f = differenceCover.length();
     cout << setw(9) << f;
     out << setw(9) << f;
     cout << setw(8);
