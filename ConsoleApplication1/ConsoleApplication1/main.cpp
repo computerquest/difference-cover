@@ -155,7 +155,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning) {
             flipCount++;
         } // end while
         while (index > 0 && !pattern[--index]);
-        if (index == 0)
+        if (index == 1)
             return 0;
         else {
             pattern[index] = 0;
