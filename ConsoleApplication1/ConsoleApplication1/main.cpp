@@ -17,7 +17,7 @@ void cover(const int p, ofstream &out);
 
 int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover);
 
-int choose(const int p, int dSize, int *pattern, int &beginning, static int index);
+int choose(const int p, int dSize, int *pattern, int &beginning, int init);
 
 int isCover(const int p, const int *differenceCover, int *testCover);
 
@@ -124,8 +124,8 @@ int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
     // differenceCover is an array that stores the current pattern generated
 
 	struct stat buffer;
-	if (stat((to_string(p) + ".txt").c_str(), &buffer) == 0) {
-		ifstream infile(to_string(p) + ".txt");
+	if (stat((std::to_string(p) + ".txt").c_str(), &buffer) == 0) {
+		ifstream infile(std::to_string(p) + ".txt");
 		string line;
 		getline(infile, line);
 		infile.close();
@@ -149,7 +149,9 @@ int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
     return 0;
 } // end coverOfSize
 
-int choose(const int p, int dSize, int *pattern, int &beginning, static int index) {
+int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
+	static int index = init;
+
 	int z = 0;
     if (beginning) {
         for (int x = 0; x < p; x++)
@@ -172,13 +174,16 @@ int choose(const int p, int dSize, int *pattern, int &beginning, static int inde
         pattern[p - 1] = 1;
         index = p - 1;
 
-		//THIS IS WHERE TO WRITE TO THE FILE
-		ofstream myfile;
-		myfile.open(to_string(p) + ".txt", ios::trunc);
-		for (int i = 0; i < p; i++) {
-			myfile << pattern[i];
-		}
-		myfile.close();
+		if (z % 10000 == 0) {
+			//THIS IS WHERE TO WRITE TO THE FILE
+			ofstream myfile;
+			myfile.open(std::to_string(p) + ".txt", ios::trunc);
+			for (int i = 0; i < p; i++) {
+				myfile << pattern[i];
+			}
+			myfile.close();
+		} 
+		z++;
 
         return 1;
     } // end else if
