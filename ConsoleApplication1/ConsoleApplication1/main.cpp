@@ -84,8 +84,6 @@ int main(int argc, char *argv[]) {
         cover(x, out);
     } // end for
     out.close();
-    
-    MPI_Finalize();
     return 0;
 } // end main
 
