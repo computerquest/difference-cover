@@ -31,6 +31,7 @@ int id; //the id of this process
 int ierr;
 int p; //number of connected nodes
 string pFile = "";
+
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
@@ -131,7 +132,7 @@ int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
 
 	struct stat buffer;
 	if (stat(pFile.c_str(), &buffer) == 0) {
-		ifstream infile(pFile);
+		ifstream infile(pFile.c_str());
 		string line;
 		getline(infile, line);
 		infile.close();
@@ -183,7 +184,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		if (z % 10000 == 0) {
 			//THIS IS WHERE TO WRITE TO THE FILE
 			ofstream myfile;
-			myfile.open(pFile, ios::trunc);
+			myfile.openpFile.c_str(), ios::trunc);
 			for (int i = 0; i < p; i++) {
 				myfile << pattern[i];
 			}
