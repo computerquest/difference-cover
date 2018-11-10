@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <iostream>
 #include <mpi.h>
+#include <string>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -15,7 +17,7 @@ void cover(const int p, ofstream &out);
 
 int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover);
 
-int choose(const int p, int dSize, int *pattern, int &beginning);
+int choose(const int p, int dSize, int *pattern, int &beginning, static int index);
 
 int isCover(const int p, const int *differenceCover, int *testCover);
 
@@ -60,13 +62,12 @@ int main(int argc, char *argv[]) {
     if (argc == 4)
         numberToCompute = atoi(argv[3]);
     ofstream out;
-    out.open(argv[1], ios::out);
     if (!out) {
         cerr << "File could not be opened." << endl;
         exit(1);
     } // end if
     cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
-    out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
+    //out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
     int instanceStart = numberToCompute/p;
     if(id < numberToCompute%p) {
@@ -81,9 +82,13 @@ int main(int argc, char *argv[]) {
 
     cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue+instanceStart-1 << endl;
     for (int x = startValue; x < startValue + instanceStart; x++) {
+		out.open(argv[1], ios::out);
         cover(x, out);
+		out.close();
     } // end for
-    out.close();
+
+	MPI_FINALIZE();
+
     return 0;
 } // end main
 
@@ -117,15 +122,35 @@ void cover(const int p, ofstream &out) {
 
 int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
     // differenceCover is an array that stores the current pattern generated
-    int beginning = 1;
-    while (choose(p, dSize, differenceCover, beginning))
-        if (isCover(p, differenceCover, testCover))
-            return 1;
+
+	struct stat buffer;
+	if (stat((to_string(p) + ".txt").c_str(), &buffer) == 0) {
+		ifstream infile(to_string(p) + ".txt");
+		string line;
+		getline(infile, line);
+		infile.close();
+
+		for (int i = 0; i < line.length(); i++) {
+			differenceCover[i] = line[i]-48; //the character value of the 0 or 1 -48 gives the actual value
+		}
+
+		int beginning = 0;
+		while (choose(p, dSize, differenceCover, beginning, p-1))
+			if (isCover(p, differenceCover, testCover))
+				return 1;
+	}
+	else {
+		int beginning = 1;
+		while (choose(p, dSize, differenceCover, beginning, 0))
+			if (isCover(p, differenceCover, testCover))
+				return 1;
+	}
+
     return 0;
 } // end coverOfSize
 
-int choose(const int p, int dSize, int *pattern, int &beginning) {
-    static int index;
+int choose(const int p, int dSize, int *pattern, int &beginning, static int index) {
+	int z = 0;
     if (beginning) {
         for (int x = 0; x < p; x++)
             pattern[x] = 0;
@@ -146,17 +171,27 @@ int choose(const int p, int dSize, int *pattern, int &beginning) {
         pattern[--index] = 0;
         pattern[p - 1] = 1;
         index = p - 1;
+
+		//THIS IS WHERE TO WRITE TO THE FILE
+		ofstream myfile;
+		myfile.open(to_string(p) + ".txt", ios::trunc);
+		for (int i = 0; i < p; i++) {
+			myfile << pattern[i];
+		}
+		myfile.close();
+
         return 1;
     } // end else if
-    else { // pattern[index - 1] == 1 && index == p - 1
-        int flipCount = 0;
+    else { // pattern[index - 1] == 1 && index == p - 1        
+		int flipCount = 0;
         while (pattern[--index]) {
             pattern[index] = 0;
             flipCount++;
         } // end while
         while (index > 0 && !pattern[--index]);
-        if (index == 1)
-            return 0;
+		if (index == 1) {
+			return 0;
+		}
         else {
             pattern[index] = 0;
             flipCount++;
