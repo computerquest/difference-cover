@@ -184,7 +184,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		if (z % 10000 == 0) {
 			//THIS IS WHERE TO WRITE TO THE FILE
 			ofstream myfile;
-			myfile.openpFile.c_str(), ios::trunc);
+			myfile.open(pFile.c_str(), ios::trunc);
 			for (int i = 0; i < p; i++) {
 				myfile << pattern[i];
 			}
