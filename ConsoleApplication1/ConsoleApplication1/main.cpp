@@ -16,7 +16,7 @@ using namespace std;
 
 void cover(const int p, ofstream &out);
 
-int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover);
+int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover);
 
 int choose(const int p, int dSize, int *pattern, int &beginning, int init);
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 
 		std::stringstream ss;
 		ss << x;
-		pFile = ss.str();
+		pFile = ss.str()+".txt";
 
 		out.open(argv[1], ios::out);
         cover(x, out);
@@ -127,7 +127,7 @@ void cover(const int p, ofstream &out) {
     delete[] testCover;
 } // end cover
 
-int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
+int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
     // differenceCover is an array that stores the current pattern generated
 
 	struct stat buffer;
@@ -140,6 +140,8 @@ int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
 		for (int i = 0; i < line.length(); i++) {
 			differenceCover[i] = line[i]-48; //the character value of the 0 or 1 -48 gives the actual value
 		}
+
+		dSize = size(differenceCover, p);
 
 		int beginning = 0;
 		while (choose(p, dSize, differenceCover, beginning, p-1))
