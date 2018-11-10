@@ -167,9 +167,9 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 } // end coverOfSize
 
 int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
-	static int index = init;
+	static int index;
 
-	int z = 0;
+	static int z;
     if (beginning) {
         for (int x = 0; x < p; x++)
             pattern[x] = 0;
@@ -178,8 +178,12 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
         pattern[p - 1] = 1;
         index = p - 1;
         beginning = 0;
+		z = 0;
         return 1;
-    }
+	}
+	else {
+		index = init;
+	}
 
     if (pattern[index - 1] == 0) {
         pattern[index] = 0;
@@ -200,8 +204,9 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 				myfile << pattern[i];
 			}
 			myfile.close();
-		} 
-		z = 1;
+			z = 0;
+		}
+		z++;
 
         return 1;
     } // end else if
