@@ -191,7 +191,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
         pattern[p - 1] = 1;
         index = p - 1;
 
-		if (z % 1000000 == 0) {
+		if (z == 10000000) {
 			cout << "writing for: " << p << endl;
 			//THIS IS WHERE TO WRITE TO THE FILE
 			ofstream myfile;
@@ -201,7 +201,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 			}
 			myfile.close();
 		} 
-		z++;
+		z = 1;
 
         return 1;
     } // end else if
