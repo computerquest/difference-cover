@@ -10,6 +10,7 @@
 #include <mpi.h>
 #include <string>
 #include <sys/stat.h>
+#include <sstream>
 
 using namespace std;
 
@@ -29,7 +30,7 @@ inline int size(const int *cover, const int p);
 int id; //the id of this process
 int ierr;
 int p; //number of connected nodes
-
+string pFile = "";
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
@@ -82,6 +83,11 @@ int main(int argc, char *argv[]) {
 
     cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue+instanceStart-1 << endl;
     for (int x = startValue; x < startValue + instanceStart; x++) {
+
+		std::stringstream ss;
+		ss << x;
+		pFile = ss.str();
+
 		out.open(argv[1], ios::out);
         cover(x, out);
 		out.close();
@@ -124,8 +130,8 @@ int coverOfSize(const int p, int dSize, int *differenceCover, int *testCover) {
     // differenceCover is an array that stores the current pattern generated
 
 	struct stat buffer;
-	if (stat((std::to_string(p) + ".txt").c_str(), &buffer) == 0) {
-		ifstream infile(std::to_string(p) + ".txt");
+	if (stat(pFile.c_str(), &buffer) == 0) {
+		ifstream infile(pFile);
 		string line;
 		getline(infile, line);
 		infile.close();
@@ -177,7 +183,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		if (z % 10000 == 0) {
 			//THIS IS WHERE TO WRITE TO THE FILE
 			ofstream myfile;
-			myfile.open(std::to_string(p) + ".txt", ios::trunc);
+			myfile.open(pFile, ios::trunc);
 			for (int i = 0; i < p; i++) {
 				myfile << pattern[i];
 			}
