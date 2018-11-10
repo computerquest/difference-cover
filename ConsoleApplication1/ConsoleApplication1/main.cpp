@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 		out.close();
     } // end for
 
-	MPI_FINALIZE();
+	MPI_Finalize();
 
     return 0;
 } // end main
