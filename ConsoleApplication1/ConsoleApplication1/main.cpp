@@ -132,6 +132,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 
 	struct stat buffer;
 	if (stat(pFile.c_str(), &buffer) == 0) {
+		cout << "reading file for: " << p << endl;
 		ifstream infile(pFile.c_str());
 		string line;
 		getline(infile, line);
@@ -142,6 +143,13 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		}
 
 		dSize = size(differenceCover, p);
+
+		cout << "starting cover for: " << p << "is: ";
+		for (int x = 0; x < p; x++)
+			if (differenceCover[x]) {
+				cout << x << " ";
+			} // end if
+		cout << endl;
 
 		int beginning = 0;
 		while (choose(p, dSize, differenceCover, beginning, p-1))
@@ -184,6 +192,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
         index = p - 1;
 
 		if (z % 10000 == 0) {
+			cout << "writing for: " << p << endl;
 			//THIS IS WHERE TO WRITE TO THE FILE
 			ofstream myfile;
 			myfile.open(pFile.c_str(), ios::trunc);
