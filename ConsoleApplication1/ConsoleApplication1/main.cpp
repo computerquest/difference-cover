@@ -29,7 +29,7 @@ inline int size(const int *cover, const int p);
 
 int id; //the id of this process
 int ierr;
-int p; //number of connected nodes
+int nn; //number of connected nodes
 string pFile = "";
 
 /*COMMANDS TO RUN/COMPILE
@@ -39,7 +39,7 @@ string pFile = "";
  */
 int main(int argc, char *argv[]) {
 	ierr = MPI_Init(&argc, &argv);
-	ierr = MPI_Comm_size(MPI_COMM_WORLD, &p);
+	ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
 	ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);
 	if (argc == 1) {
 		cout << "This program computes difference covers of a range specified by" << endl;
@@ -71,8 +71,8 @@ int main(int argc, char *argv[]) {
 	cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 	//out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
-	int instanceStart = numberToCompute / p;
-	if (id < numberToCompute%p) {
+	int instanceStart = numberToCompute / nn;
+	if (id < numberToCompute%nn) {
 		instanceStart += 1;
 
 		if (id != 0) {
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	else {
-		startValue += numberToCompute % p + id * instanceStart;
+		startValue += numberToCompute % nn + id * instanceStart;
 	}
 
 	cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue + instanceStart - 1 << endl;
