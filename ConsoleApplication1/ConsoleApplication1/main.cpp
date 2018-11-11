@@ -14,7 +14,7 @@
 
 using namespace std;
 
-void cover(const int p, ofstream &out);
+void cover(const int p, string out);
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover);
 
@@ -22,7 +22,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init);
 
 int isCover(const int p, const int *differenceCover, int *testCover);
 
-void print(const int p, const int *differenceCover, ofstream &out);
+void print(const int p, const int *differenceCover, string file);
 
 inline int size(const int *cover, const int p);
 
@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
 	ierr = MPI_Init(&argc, &argv);
 	ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
 	ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);
+	
 	if (argc == 1) {
 		cout << "This program computes difference covers of a range specified by" << endl;
 		cout << "the user. This program then saves the covers to a file that you" << endl;
@@ -92,11 +93,8 @@ int main(int argc, char *argv[]) {
 		ss << x;
 		pFile = ss.str() + ".txt";
 
-		out.open(argv[1], ios::out);
-		cover(x, out);
-		cout << "printing" << endl;
-		out.close();
-		cout << "closed" << endl;
+		cover(x, argv[1]);
+		cout << "done" << endl;
 	} // end for
 
 	cout << "finalizing" << endl;
@@ -105,7 +103,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 } // end main
 
-void cover(const int p, ofstream &out) {
+void cover(const int p, string out) {
 	// The min is the smallest possible difference cover of a set of size p.
 	int min = 1;
 	for (int x = 2; x < p; x++)
@@ -158,16 +156,9 @@ void cover(const int p, ofstream &out) {
 		} // end if
 	}
 	
-	cout << "cleaning up now" << endl;
-
 	//for whatever reason the delete statements crashed the program with a seg fault
 	//delete[] differenceCover;
-	
-	cout << "deleted the difference cover" << endl;
-
 	//delete[] testCover;
-
-	cout << "finished cleaning" << endl;
 } // end cover
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
@@ -281,7 +272,10 @@ int isCover(const int p, const int *differenceCover, int *testCover) {
 	return 0;
 } // end isCover
 
-void print(const int p, const int *differenceCover, ofstream &out) {
+void print(const int p, const int *differenceCover, string file) {
+	ofstream out;
+	out.open(file, ios::out);
+
 	cout << setw(4) << p;
 	out << setw(4) << p;
 	int f = size(differenceCover, p);
@@ -296,6 +290,8 @@ void print(const int p, const int *differenceCover, ofstream &out) {
 		} // end if
 	cout << endl;
 	out << endl;
+
+	out.close();
 } // end print
 
 int size(const int *cover, const int p) {
