@@ -63,11 +63,13 @@ int main(int argc, char *argv[]) {
 
 	if (argc == 4)
 		numberToCompute = atoi(argv[3]);
+
 	ofstream out;
 	if (!out) {
 		cerr << "File could not be opened." << endl;
 		exit(1);
 	} // end if
+
 	cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 	//out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
@@ -147,13 +149,25 @@ void cover(const int p, ofstream &out) {
 		cout << endl;
 	}
 
-	for (int x = min; x <= max; x++)
+	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
+			cout << "starting the print from within" << endl;
 			print(p, differenceCover, out);
+			cout << "finished printing from within" << endl;
 			break;
 		} // end if
-	delete[] differenceCover;
-	delete[] testCover;
+	}
+	
+	cout << "cleaning up now" << endl;
+
+	//for whatever reason the delete statements crashed the program with a seg fault
+	//delete[] differenceCover;
+	
+	cout << "deleted the difference cover" << endl;
+
+	//delete[] testCover;
+
+	cout << "finished cleaning" << endl;
 } // end cover
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
