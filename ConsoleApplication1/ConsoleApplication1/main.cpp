@@ -92,9 +92,12 @@ int main(int argc, char *argv[]) {
 
 		out.open(argv[1], ios::out);
 		cover(x, out);
+		cout << "printing" << endl;
 		out.close();
+		cout << "closed" << endl;
 	} // end for
 
+	cout << "finalizing" << endl;
 	MPI_Finalize();
 
 	return 0;
