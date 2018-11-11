@@ -187,7 +187,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		z = 0;
 		return 1;
 	}
-	else {
+	else if(beginning) {
 		index = init;
 		beginning = 0;
 	}
