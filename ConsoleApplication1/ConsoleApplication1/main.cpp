@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	} // end if
 
-	cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
+	//cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 	//out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
 	int instanceStart = numberToCompute / nn;
@@ -94,10 +94,9 @@ int main(int argc, char *argv[]) {
 		pFile = ss.str() + ".txt";
 
 		cover(x, argv[1]);
-		cout << "done" << endl;
 	} // end for
 
-	cout << "finalizing" << endl;
+	cout << "Thread: " << id << " is finished" << endl;
 	MPI_Finalize();
 
 	return 0;
@@ -139,7 +138,7 @@ void cover(const int p, string out) {
 		min = size(differenceCover, p);
 		begin = 0;
 
-		cout << "starting cover for: " << p << "is: ";
+		cout << "starting cover for: " << p << " is: ";
 		for (int x = 0; x < p; x++)
 			if (differenceCover[x]) {
 				cout << x << " ";
@@ -149,9 +148,7 @@ void cover(const int p, string out) {
 
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
-			cout << "starting the print from within" << endl;
 			print(p, differenceCover, out);
-			cout << "finished printing from within" << endl;
 			break;
 		} // end if
 	}
@@ -200,8 +197,6 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		beginning = 0;
 	}
 
-	z++;
-
 	if (pattern[index - 1] == 0) {
 		pattern[index] = 0;
 		pattern[--index] = 1;
@@ -212,9 +207,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		pattern[p - 1] = 1;
 		index = p - 1;
 
-		if (z >= 5000000) {
-			cout << "writing for: " << p << endl;
-			//THIS IS WHERE TO WRITE TO THE FILE
+		if (z == 10000000) {
 			ofstream myfile;
 			myfile.open(pFile.c_str(), ios::trunc);
 			for (int i = 0; i < p; i++) {
@@ -223,6 +216,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 			myfile.close();
 			z = 0;
 		}
+		z++;
 
 		return 1;
 	} // end else if
@@ -275,7 +269,7 @@ int isCover(const int p, const int *differenceCover, int *testCover) {
 
 void print(const int p, const int *differenceCover, string file) {
 	ofstream out;
-	out.open(file, ios::out);
+	out.open(file.c_str(), ios::out);
 
 	cout << setw(4) << p;
 	out << setw(4) << p;
