@@ -290,7 +290,7 @@ int isCover(const int p, const int *differenceCover, int *testCover) {
 
 void print(const int p, const int *differenceCover, string file) {
 	ofstream out;
-	out.open(file.c_str(), ios::out);
+	out.open(file.c_str(), ios::app);
 
 	cout << setw(4) << p;
 	out << setw(4) << p;
