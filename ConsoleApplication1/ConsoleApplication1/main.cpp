@@ -88,14 +88,19 @@ int main(int argc, char *argv[]) {
 
 	cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue + instanceStart - 1 << endl;
 	for (int x = startValue; x < startValue + instanceStart; x++) {
-
+		cout << "my work is starting over" << endl;
 		std::stringstream ss;
 		ss << x;
 		pFile = ss.str() + ".txt";
 
 		cover(x, argv[1]);
+		cout << "my work here is done" << endl;
+		cout << "now exiting the loop" << endl;
+		cout << x << startValue << argv[1] << pFile << instanceStart << endl; 
 	} // end for
 
+	cout << "searching for trouble" << endl;
+	cout << "left the loop" << endl;
 	cout << "Thread: " << id << " is finished" << endl;
 	MPI_Finalize();
 
@@ -149,6 +154,7 @@ void cover(const int p, string out) {
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
 			print(p, differenceCover, out);
+			cout << "finished the print" << endl;
 			break;
 		} // end if
 	}
@@ -156,6 +162,7 @@ void cover(const int p, string out) {
 	//for whatever reason the delete statements crashed the program with a seg fault
 	//delete[] differenceCover;
 	//delete[] testCover;
+	cout << "leaving now" << endl;
 } // end cover
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
@@ -179,8 +186,8 @@ int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *t
 
 int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 	static int index;
-
 	static int z;
+
 	if (beginning && init != -1) {
 		for (int x = 0; x < p; x++)
 			pattern[x] = 0;
@@ -209,7 +216,9 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		pattern[p - 1] = 1;
 		index = p - 1;
 
-		if (z >= 1) {
+		if (z >= 30000000) {
+			cout << "writing for " << p << endl;
+ 
 			ofstream myfile;
 			myfile.open(pFile.c_str(), ios::trunc);
 			for (int i = 0; i < p; i++) {
@@ -238,7 +247,8 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 				pattern[index + y] = 1;
 			index = p - 1;
 
-			if (z >= 1) {
+			if (z >= 30000000) {
+				cout << "writing for " << p << endl;
 				ofstream myfile;
 				myfile.open(pFile.c_str(), ios::trunc);
 				for (int i = 0; i < p; i++) {
