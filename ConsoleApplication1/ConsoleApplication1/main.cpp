@@ -197,6 +197,8 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		beginning = 0;
 	}
 
+	z++;
+
 	if (pattern[index - 1] == 0) {
 		pattern[index] = 0;
 		pattern[--index] = 1;
@@ -207,7 +209,7 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		pattern[p - 1] = 1;
 		index = p - 1;
 
-		if (z == 10000000) {
+		if (z >= 5000000) {
 			ofstream myfile;
 			myfile.open(pFile.c_str(), ios::trunc);
 			for (int i = 0; i < p; i++) {
@@ -216,7 +218,6 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 			myfile.close();
 			z = 0;
 		}
-		z++;
 
 		return 1;
 	} // end else if
