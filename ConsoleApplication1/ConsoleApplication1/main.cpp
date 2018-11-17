@@ -181,6 +181,18 @@ int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *t
 		differenceCover[p - 1] = 1;
 	}
 
+	if (isCover(p, differenceCover, testCover)) {
+		cout << "final write " << p << endl;
+		ofstream myfile;
+		myfile.open(pFile.c_str(), ios::trunc);
+		for (int i = 0; i < p; i++) {
+			myfile << differenceCover[i];
+		}
+		myfile.close();
+
+		return 1;
+	}
+
 	int index = p - 1;
 	for (int z = 0; choose(p, dSize, differenceCover, index); z++) {
 		if (isCover(p, differenceCover, testCover)) {
