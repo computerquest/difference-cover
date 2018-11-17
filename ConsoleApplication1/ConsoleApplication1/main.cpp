@@ -159,12 +159,13 @@ void cover(const int p, string out) {
 
 	//this place is good
 
-
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
 			print(p, differenceCover, out);
 			break;
 		} // end if
+
+		begin = 1;
 	}
 
 	delete[] testCover;
