@@ -12,20 +12,29 @@
 #include <sys/stat.h>
 #include <sstream>
 
+namespace patch
+{
+	template < typename T > std::string to_string(const T& n)
+	{
+		std::ostringstream stm;
+		stm << n;
+		return stm.str();
+	}
+}
+
 using namespace std;
 
 void cover(const int p, string out);
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover);
 
-int choose(const int p, int dSize, int *pattern, int &beginning, int init);
+int choose(const int p, int dSize, int *pattern, int& index);
 
 int isCover(const int p, const int *differenceCover, int *testCover);
 
 void print(const int p, const int *differenceCover, string file);
 
 inline int size(const int *cover, const int p);
-
 
 int id; //the id of this process
 int ierr;
@@ -41,7 +50,7 @@ int main(int argc, char *argv[]) {
 	ierr = MPI_Init(&argc, &argv);
 	ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
 	ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);
-	
+
 	if (argc == 1) {
 		cout << "This program computes difference covers of a range specified by" << endl;
 		cout << "the user. This program then saves the covers to a file that you" << endl;
@@ -65,11 +74,13 @@ int main(int argc, char *argv[]) {
 	if (argc == 4)
 		numberToCompute = atoi(argv[3]);
 
-	ofstream out;
+	/*ofstream out;
 	if (!out) {
 		cerr << "File could not be opened." << endl;
 		exit(1);
-	} // end if
+	} // end if*/
+
+	string outFile = argv[1];
 
 	//cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 	//out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
@@ -86,24 +97,20 @@ int main(int argc, char *argv[]) {
 		startValue += numberToCompute % nn + id * instanceStart;
 	}
 
+
 	cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue + instanceStart - 1 << endl;
 	for (int x = startValue; x < startValue + instanceStart; x++) {
-		cout << "my work is starting over" << endl;
-		std::stringstream ss;
-		ss << x;
-		pFile = ss.str() + ".txt";
+		cout << "Thread: " << id << " on: " << x << endl;
+		pFile = patch::to_string(x) + ".txt";
 
-		cover(x, argv[1]);
-		cout << "my work here is done" << endl;
-		cout << "now exiting the loop" << endl;
-		cout << x << startValue << argv[1] << pFile << instanceStart << endl; 
+		cover(x, outFile);
 	} // end for
 
-	cout << "searching for trouble" << endl;
-	cout << "left the loop" << endl;
 	cout << "Thread: " << id << " is finished" << endl;
+
 	MPI_Finalize();
 
+	cout << "done" << endl;
 	return 0;
 } // end main
 
@@ -130,7 +137,6 @@ void cover(const int p, string out) {
 
 	struct stat buffer;
 	if (stat(pFile.c_str(), &buffer) == 0) {
-		cout << "reading file for: " << p << endl;
 		ifstream infile(pFile.c_str());
 		string line;
 		getline(infile, line);
@@ -151,61 +157,58 @@ void cover(const int p, string out) {
 		cout << endl;
 	}
 
+	//this place is good
+
+
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
 			print(p, differenceCover, out);
-			cout << "finished the print" << endl;
 			break;
 		} // end if
 	}
-	
-	//for whatever reason the delete statements crashed the program with a seg fault
-	//delete[] differenceCover;
-	//delete[] testCover;
-	cout << "leaving now" << endl;
+
+	delete[] testCover;
+	delete[] differenceCover;
 } // end cover
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
-	// differenceCover is an array that stores the current pattern generated
-
-	if (!begin) {
-		int beginning = 1;
-		while (choose(p, dSize, differenceCover, beginning, - 1))
-			if (isCover(p, differenceCover, testCover))
-				return 1;
+	if (begin) {
+		for (int x = 0; x < p; x++)
+			differenceCover[x] = 0;
+		for (int x = 0; x < dSize - 1; x++)
+			differenceCover[x] = 1;
+		differenceCover[p - 1] = 1;
 	}
-	else {
-		int beginning = 1;
-		while (choose(p, dSize, differenceCover, beginning, 0))
-			if (isCover(p, differenceCover, testCover))
-				return 1;
+
+	int index = p - 1;
+	for (int z = 0; choose(p, dSize, differenceCover, index); z++) {
+		if (isCover(p, differenceCover, testCover)) {
+			cout << "final write " << p << endl;
+			ofstream myfile;
+			myfile.open(pFile.c_str(), ios::trunc);
+			for (int i = 0; i < p; i++) {
+				myfile << differenceCover[i];
+			}
+			myfile.close();
+
+			return 1;
+		}
+		else if (z >= 30000000 && index == p - 1) {
+			cout << "writing for " << p << endl;
+			ofstream myfile;
+			myfile.open(pFile.c_str(), ios::trunc);
+			for (int i = 0; i < p; i++) {
+				myfile << differenceCover[i];
+			}
+			myfile.close();
+			z = 0;
+		}
 	}
 
 	return 0;
 } // end coverOfSize
 
-int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
-	static int index;
-	static int z;
-
-	if (beginning && init != -1) {
-		for (int x = 0; x < p; x++)
-			pattern[x] = 0;
-		for (int x = 0; x < dSize - 1; x++)
-			pattern[x] = 1;
-		pattern[p - 1] = 1;
-		index = p - 1;
-		beginning = 0;
-		z = 0;
-		return 1;
-	}
-	else if(beginning) {
-		index = init;
-		beginning = 0;
-	}
-
-	z++;
-
+int choose(const int p, int dSize, int *pattern, int& index) {
 	if (pattern[index - 1] == 0) {
 		pattern[index] = 0;
 		pattern[--index] = 1;
@@ -215,18 +218,6 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 		pattern[--index] = 0;
 		pattern[p - 1] = 1;
 		index = p - 1;
-
-		if (z >= 30000000) {
-			cout << "writing for " << p << endl;
- 
-			ofstream myfile;
-			myfile.open(pFile.c_str(), ios::trunc);
-			for (int i = 0; i < p; i++) {
-				myfile << pattern[i];
-			}
-			myfile.close();
-			z = 0;
-		}
 
 		return 1;
 	} // end else if
@@ -245,18 +236,8 @@ int choose(const int p, int dSize, int *pattern, int &beginning, int init) {
 			flipCount++;
 			for (int y = 1; y <= flipCount; y++)
 				pattern[index + y] = 1;
-			index = p - 1;
+			index = p - 1;			
 
-			if (z >= 30000000) {
-				cout << "writing for " << p << endl;
-				ofstream myfile;
-				myfile.open(pFile.c_str(), ios::trunc);
-				for (int i = 0; i < p; i++) {
-					myfile << pattern[i];
-				}
-				myfile.close();
-				z = 0;
-			}
 			return 1;
 		} // end else
 	} // end else
