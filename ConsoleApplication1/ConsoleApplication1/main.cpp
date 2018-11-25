@@ -93,7 +93,7 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 		return l;
 	}
 	else {
-		int i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
+		long long i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
 		if (k < i) {
 			vector<int> ans;
 			ans.push_back(l[0]);
@@ -218,6 +218,14 @@ void cover(const int p, string out) {
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, differenceCover, testCover)) {
 			if (isCover(p, x, differenceCover, testCover)) {
+				ofstream myfilea;
+				myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+				for (int a = 0; a < x - 1; a++) {
+					myfilea << differenceCover[a] << " ";
+				}
+				myfilea << differenceCover[x - 1] << endl;
+				myfilea.close();
+
 				print(p, x, differenceCover, out);
 			}
 			break;
@@ -240,10 +248,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	unsigned long long startValue = 0;
 	unsigned long long instanceStart = 0;
 
-	cout << "1" << endl;
-
 	unsigned long long numCombo = nChoosek(p - 2, dSize - 2);
-	cout << "2" << endl;
 
 	instanceStart = numCombo / nn;
 	if (id < numCombo%nn) {
@@ -257,11 +262,9 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		startValue += numCombo % nn + id * instanceStart;
 	}
 
-	cout << "3" << endl;
-
 	cout << "Thread: " << id << " " << startValue << " " << startValue + instanceStart << " out of " << numCombo << endl;
 
-	unsigned long long startingIndex = startValue;
+	unsigned long long startingIndex = startValue+1;
 
 	struct stat buffer;
 	if (stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
@@ -300,8 +303,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 			differenceCover[i] = starter[i];
 		}
 	}
-
-	cout << "4" << endl;
 
 	for (int i = 0; i < p; i++) {
 		testCover[i] = 0;
@@ -342,59 +343,38 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		}
 	}
 
-	cout << "5" << endl;
-
 	if (isCover(p, dSize, differenceCover, testCover)) {
 		cout << "we found it//////////////////////////////////////////////" << endl;
 
 		ofstream myfile;
-		myfile.open((pFile + ".txt").c_str(), ios::trunc);
-		cout << "writing for " << p << endl;
+		myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
 		for (int a = 0; a < dSize - 1; a++) {
 			myfile << differenceCover[a] << " ";
-
 		}
-		myfile << differenceCover[dSize - 1];
+		myfile << differenceCover[dSize - 1] << endl;
+		myfile << startValue << endl;
 		myfile.close();
-
-		for (int i = 0; i < dSize; i++) {
-			cout << differenceCover[i] << " ";
-		}
-		cout << endl;
-
+		
 		return 1;
 	}
-
-	cout << "6" << endl;
 
 	unsigned long long writeTime = (unsigned long long)(.01*(instanceStart));
 	if (writeTime > 30000000 || writeTime < 1000000) {
 		writeTime = 30000000;
 	}
 
-	cout << writeTime << "hello " << endl;
-	cout << "7" << endl;
-
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
 			cout << "it is done /////////////////////////////////////////////////////////////" << endl;
 
 			ofstream myfile;
-			myfile.open((pFile + ".txt").c_str(), ios::trunc);
-			cout << "writing for " << p << endl;
+			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
 			for (int a = 0; a < dSize - 1; a++) {
 				myfile << differenceCover[a] << " ";
-
 			}
-			myfile << differenceCover[dSize - 1];
+			myfile << differenceCover[dSize - 1] << endl;
+			myfile << z << endl;
 			myfile.close();
-
-			for (int i = 0; i < dSize; i++) {
-				cout << differenceCover[i] << " ";
-			}
-			cout << endl;
-
-			cout << "8" << endl;
 
 			return 1;
 		}
@@ -404,7 +384,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 				cout << "someone else found it //////////////////////////////////////" << endl;
 				return 1;
 			}
-			cout << "9" << endl;
 
 			cout << "Thread " << id << " writing for " << p << endl;
 			ofstream myfile;
@@ -415,8 +394,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 			myfile << differenceCover[dSize - 1] << endl;
 			myfile << z << endl;
 			myfile.close();
-			cout << "10" << endl;
-
 		}
 
 		/*cout << "Thread " << id << " z "<< z << " out of " << (startValue+instanceStart) << " " << z % (int)(.01*(startValue + instanceStart)) << " ";
@@ -433,8 +410,8 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 			return 1;
 		}
 	}
-
-	cout << "11" << endl;
+	
+	cout << "Thread " << id << " is waiting for the rest" << endl;
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -468,26 +445,6 @@ int choose(const int p, int dSize, int *pattern) {
 } // end choose
 
 int isCover(const int p, int dSize, const int *differenceCover, int *testCover) {
-	// Takes half the time, unless the double pointer casting takes too long. (Check this.)
-	/*double *temp = (double *)testCover;
-	for (int x = 0; x < p / 2; x++)
-		temp[x] = 0;
-	// Faster to not check if it is even or not.
-	testCover[p - 1] = 0;
-
-	testCover[0] = 1;
-	for (int x = 0; x < p - 1; x++)
-		if (differenceCover[x])
-			for (int y = x + 1; y < p; y++)
-				if (differenceCover[y]) {
-					// testCover[(x - y + p) % p] = 1;
-					// testCover[(y - x + p) % p] = 1;
-					// Use below instead of the above, since y > x, (y-x) < p, and (y-x)%p + (x-y)%p = p
-					int q = y - x;
-					testCover[q] = testCover[p - q] = 1;
-					// testCover[p - q] = 1;
-				} // end if*/
-
 	double *temp = (double *)testCover;
 	for (int x = 0; x < p / 2; x++)
 		temp[x] = 0;
@@ -513,15 +470,19 @@ void print(const int p, int dSize, const int *differenceCover, string file) {
 	ofstream out;
 	out.open(file.c_str(), ios::app);
 
+	cout << setw(4) << p;
 	out << setw(4) << p;
 	int f = dSize;
+	cout << setw(9) << f;
 	out << setw(9) << f;
+	cout << setw(8);
 	out << setw(8);
 	for (int x = 0; x < dSize; x++) {
+		cout << differenceCover[x] << setw(3);
 		out << differenceCover[x] << setw(3);
 	} // end if
 	out << endl;
-
+	cout << endl;
 	out.close();
 } // end print
 
