@@ -363,6 +363,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		writeTime = 30000000;
 	}
 
+	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
 			cout << "it is done /////////////////////////////////////////////////////////////" << endl;
@@ -385,7 +386,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 				return 1;
 			}
 
-			cout << "Thread " << id << " writing for " << p << endl;
+			cout << "Thread " << id << " writing for " << p << " complete " << (double) (z-startValue)/(instanceStart) << endl;
 			ofstream myfile;
 			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
 			for (int a = 0; a < dSize - 1; a++) {
