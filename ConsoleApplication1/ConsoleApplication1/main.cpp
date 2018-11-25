@@ -11,7 +11,36 @@
 #include <string>
 #include <sys/stat.h>
 #include <sstream>
+#include <vector>
+/*
+import operator as op
+def nCr(n, r):
+	r = min(r, n-r)
+	numer = reduce(op.mul, xrange(n, n-r, -1), 1)
+	denom = reduce(op.mul, xrange(1, r+1), 1)
+	return numer//denom
 
+k = combination number, l = numbers to choose from, r = slots available
+def kthCombination(k, l, r):
+
+	if r == 0:
+		return []
+	elif len(l) == r:
+		return l
+	else:
+		i=nCr(len(l)-1, r-1)
+		if k < i:
+			return l[0:1] + kthCombination(k, l[1:], r-1)
+		else:
+			return kthCombination(k-i, l[1:], r)
+
+#kthCombination(3000, [0,1,2,3, 4,5,6,7,8,9,10,11,12,13,14], 5)
+for k in range(1,3000):
+global counter
+counter = 0
+print kthCombination(k, [0,1,2,3, 4,5,6,7,8,9,10,11,12,13,14], 5), counter
+
+*/
 namespace patch
 {
 	template < typename T > std::string to_string(const T& n)
@@ -24,13 +53,61 @@ namespace patch
 
 using namespace std;
 
+unsigned nChoosek(unsigned n, unsigned k)
+{
+	if (k > n) return 0;
+	if (k * 2 > n) k = n - k;
+	if (k == 0) return 1;
+
+	int result = n;
+	for (int i = 2; i <= k; ++i) {
+		result *= (n - i + 1);
+		result /= i;
+	}
+	return result;
+}
+
+vector<int> kthCombination(int k, vector<int> l, int r) {
+	if (r == 0) {
+		vector<int> ans;
+		return ans;
+	}
+	else if (l.size() == r) {
+		return l;
+	}
+	else {
+		int i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
+		if (k < i) {
+			vector<int> ans;
+			ans.push_back(l[0]);
+
+			vector<int> tertiary(l.begin() + 1, l.end());
+
+			vector<int> secondary = kthCombination(k, tertiary, r - 1);
+
+			ans.insert(ans.end(), secondary.begin(), secondary.end());
+
+			return ans;
+		}
+		else {
+			vector<int> ans;
+
+			vector<int> tertiary(l.begin() + 1, l.end());
+
+			vector<int> secondary = kthCombination(k - i, tertiary, r);
+
+			return secondary;
+		}
+	}
+}
+
 void cover(const int p, string out);
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover);
 
-int choose(const int p, int dSize, int *pattern, int& index);
+int choose(const int p, int dSize, int *pattern);
 
-int isCover(const int p, const int *differenceCover, int *testCover);
+int isCover(const int p, int dSize, const int *differenceCover, int *testCover);
 
 void print(const int p, const int *differenceCover, string file);
 
@@ -97,14 +174,13 @@ int main(int argc, char *argv[]) {
 		startValue += numberToCompute % nn + id * instanceStart;
 	}
 
-
 	cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue + instanceStart - 1 << endl;
 	for (int x = startValue; x < startValue + instanceStart; x++) {
 		cout << "Thread: " << id << " on: " << x << endl;
 		pFile = patch::to_string(x) + ".txt";
 
 		cover(x, outFile);
-	} // end for
+	} // end for 
 
 	cout << "Thread: " << id << " is finished" << endl;
 
@@ -131,11 +207,12 @@ void cover(const int p, string out) {
 			break;
 		} // end if
 
+	//these can and should be minimized in the future
 	int *differenceCover = new int[p];
 	int *testCover = new int[p];
 	int begin = 1;
 
-	struct stat buffer;
+	/*struct stat buffer;
 	if (stat(pFile.c_str(), &buffer) == 0) {
 		ifstream infile(pFile.c_str());
 		string line;
@@ -155,9 +232,7 @@ void cover(const int p, string out) {
 				cout << x << " ";
 			} // end if
 		cout << endl;
-	}
-
-	//this place is good
+	}*/
 
 	for (int x = min; x <= max; x++) {
 		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
@@ -174,91 +249,75 @@ void cover(const int p, string out) {
 
 int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
 	if (begin) {
-		for (int x = 0; x < p; x++)
-			differenceCover[x] = 0;
-		for (int x = 0; x < dSize - 1; x++)
-			differenceCover[x] = 1;
-		differenceCover[p - 1] = 1;
+		for (int i = 0; i < dSize; i++) {
+			differenceCover[i] = i;
+		}
+
+		for (int i = 0; i < p; i++) {
+			testCover[i] = 0;
+		}
 	}
 
-	if (isCover(p, differenceCover, testCover)) {
-		cout << "final write " << p << endl;
-		ofstream myfile;
-		myfile.open(pFile.c_str(), ios::trunc);
-		for (int i = 0; i < p; i++) {
-			myfile << differenceCover[i];
-		}
-		myfile.close();
+	for (int i = 0; i < dSize; i++) {
+		cout << differenceCover[i] << " ";
+	}
+	cout << endl;
+
+	if (isCover(p, dSize, differenceCover, testCover)) {
+		cout << "we found it" << endl;
 
 		return 1;
 	}
 
-	int index = p - 1;
-	for (int z = 0; choose(p, dSize, differenceCover, index); z++) {
-		if (isCover(p, differenceCover, testCover)) {
-			cout << "final write " << p << endl;
-			ofstream myfile;
-			myfile.open(pFile.c_str(), ios::trunc);
-			for (int i = 0; i < p; i++) {
-				myfile << differenceCover[i];
+	for (int z = 0; choose(p, dSize, differenceCover); z++) {
+		if (isCover(p, dSize, differenceCover, testCover)) {
+			cout << "it is done" << endl;
+
+			for (int i = 0; i < dSize; i++) {
+				cout << differenceCover[i] << " ";
 			}
-			myfile.close();
+			cout << endl;
 
 			return 1;
 		}
-		else if (z >= 30000000 && index == p - 1) {
-			cout << "writing for " << p << endl;
-			ofstream myfile;
-			myfile.open(pFile.c_str(), ios::trunc);
-			for (int i = 0; i < p; i++) {
-				myfile << differenceCover[i];
-			}
-			myfile.close();
-			z = 0;
+
+		for (int i = 0; i < dSize; i++) {
+			cout << differenceCover[i] << " ";
 		}
+		cout << endl;
 	}
 
 	return 0;
 } // end coverOfSize
 
-int choose(const int p, int dSize, int *pattern, int& index) {
-	if (pattern[index - 1] == 0) {
-		pattern[index] = 0;
-		pattern[--index] = 1;
+int choose(const int p, int dSize, int *pattern) {
+	if (pattern[dSize - 1] < p - 1) {
+		pattern[dSize - 1]++;
 		return 1;
-	} // end if
-	else if (index != p - 1) { // && pattern[index - 1] == 1)
-		pattern[--index] = 0;
-		pattern[p - 1] = 1;
-		index = p - 1;
+	}
+	else if (pattern[dSize - 1] == p - 1) {
+		for (int a = 1; dSize - a >= 0; a++) {
+			if (dSize - a <= 1) {
+				return 0;
+			}
 
+			pattern[dSize - a]++;
+			if (pattern[dSize - a] <= p - a) {
+				for (int z = 1; z + dSize - a < dSize; z++) {
+					pattern[z + dSize - a] = pattern[dSize - a] + z;
+				}
+
+				break;
+			}
+		}
 		return 1;
 	} // end else if
-	else { // pattern[index - 1] == 1 && index == p - 1        
-		int flipCount = 0;
-		while (pattern[--index]) {
-			pattern[index] = 0;
-			flipCount++;
-		} // end while
-		while (index > 0 && !pattern[--index]);
-		if (index == 1) {
-			return 0;
-		}
-		else {
-			pattern[index] = 0;
-			flipCount++;
-			for (int y = 1; y <= flipCount; y++)
-				pattern[index + y] = 1;
-			index = p - 1;			
-
-			return 1;
-		} // end else
-	} // end else
+	cout << "something is super wrong //////////////////////////////////////////////////////////" << endl;
 } // end choose
 
-int isCover(const int p, const int *differenceCover, int *testCover) {
+int isCover(const int p, int dSize, const int *differenceCover, int *testCover) {
 	// Takes half the time, unless the double pointer casting takes too long. (Check this.)
-	double *temp = (double *)testCover;
+	/*double *temp = (double *)testCover;
 	for (int x = 0; x < p / 2; x++)
 		temp[x] = 0;
 	// Faster to not check if it is even or not.
@@ -275,7 +334,23 @@ int isCover(const int p, const int *differenceCover, int *testCover) {
 					int q = y - x;
 					testCover[q] = testCover[p - q] = 1;
 					// testCover[p - q] = 1;
-				} // end if
+				} // end if*/
+
+	double *temp = (double *)testCover;
+	for (int x = 0; x < p / 2; x++)
+		temp[x] = 0;
+	testCover[p - 1] = 0;
+	testCover[0] = 1;
+
+	for (int x = 0; x < dSize - 1; x++) {
+		for (int y = x + 1; y < dSize; y++) {
+			int xa = differenceCover[x];
+			int ya = differenceCover[y];
+
+			int q = ya - xa;
+			testCover[q] = testCover[p - q] = 1;
+		}
+	}
 
 	if (size(testCover, p) == p)
 		return 1;
