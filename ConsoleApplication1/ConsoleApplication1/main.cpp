@@ -43,7 +43,7 @@ print kthCombination(k, [0,1,2,3, 4,5,6,7,8,9,10,11,12,13,14], 5), counter
 */
 namespace patch
 {
-	template < typename T > std::string to_string(const T& n)
+	template < typename T > std::string stringMaker(const T& n)
 	{
 		std::ostringstream stm;
 		stm << n;
@@ -103,13 +103,13 @@ vector<int> kthCombination(int k, vector<int> l, int r) {
 
 void cover(const int p, string out);
 
-int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover);
+int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover);
 
 int choose(const int p, int dSize, int *pattern);
 
 int isCover(const int p, int dSize, const int *differenceCover, int *testCover);
 
-void print(const int p, const int *differenceCover, string file);
+void print(const int p, int dSize, const int *differenceCover, string file);
 
 inline int size(const int *cover, const int p);
 
@@ -162,22 +162,9 @@ int main(int argc, char *argv[]) {
 	//cout << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 	//out << setw(4) << "p" << setw(9) << "f(p)" << setw(37) << "difference cover" << endl;
 
-	int instanceStart = numberToCompute / nn;
-	if (id < numberToCompute%nn) {
-		instanceStart += 1;
-
-		if (id != 0) {
-			startValue += id * instanceStart;
-		}
-	}
-	else {
-		startValue += numberToCompute % nn + id * instanceStart;
-	}
-
-	cout << "Thread: " << id << " starting on: " << startValue << " ending on: " << startValue + instanceStart - 1 << endl;
-	for (int x = startValue; x < startValue + instanceStart; x++) {
+	for (int x = startValue; x < startValue + numberToCompute; x++) {
 		cout << "Thread: " << id << " on: " << x << endl;
-		pFile = patch::to_string(x) + ".txt";
+		pFile = patch::stringMaker(x);
 
 		cover(x, outFile);
 	} // end for 
@@ -210,52 +197,86 @@ void cover(const int p, string out) {
 	//these can and should be minimized in the future
 	int *differenceCover = new int[p];
 	int *testCover = new int[p];
-	int begin = 1;
-
-	/*struct stat buffer;
-	if (stat(pFile.c_str(), &buffer) == 0) {
-		ifstream infile(pFile.c_str());
-		string line;
-		getline(infile, line);
-		infile.close();
-
-		for (int i = 0; i < line.length(); i++) {
-			differenceCover[i] = line[i] - 48; //the character value of the 0 or 1 -48 gives the actual value
-		}
-
-		min = size(differenceCover, p);
-		begin = 0;
-
-		cout << "starting cover for: " << p << " is: ";
-		for (int x = 0; x < p; x++)
-			if (differenceCover[x]) {
-				cout << x << " ";
-			} // end if
-		cout << endl;
-	}*/
 
 	for (int x = min; x <= max; x++) {
-		if (coverOfSize(p, x, begin, differenceCover, testCover)) {
-			print(p, differenceCover, out);
+		if (coverOfSize(p, x, differenceCover, testCover)) {
+			if (isCover(p, x, differenceCover, testCover)) {
+				print(p, x, differenceCover, out);
+			}
 			break;
 		} // end if
 
-		begin = 1;
+		{
+			struct stat b;
+			if (stat((pFile + ".txt").c_str(), &b) == 0) {
+				cout << "someone else found it //////////////////////////////////////" << endl;
+				return;
+			}
+		}
 	}
 
 	delete[] testCover;
 	delete[] differenceCover;
 } // end cover
 
-int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *testCover) {
-	if (begin) {
-		for (int i = 0; i < dSize; i++) {
-			differenceCover[i] = i;
+int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
+	int startValue = 0;
+	int instanceStart = 0;
+
+	int numCombo = nChoosek(p - 2, dSize - 2);
+
+	instanceStart = numCombo / nn;
+	if (id < numCombo%nn) {
+		instanceStart += 1;
+
+		if (id != 0) {
+			startValue += id * instanceStart;
+		}
+	}
+	else {
+		startValue += numCombo % nn + id * instanceStart;
+	}
+
+	cout << "Thread: " << id << " " << startValue << " " << startValue + instanceStart << endl;
+
+	struct stat buffer;
+	if (stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
+		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
+		string line;
+		getline(infile, line);
+		infile.close();
+
+		int value = 0;
+		std::stringstream  lineStream(line);
+		int count = 0;
+		for (int a = 0; a < dSize && lineStream >> value; a++)
+		{
+			// Add the integers from a line to a 1D array (vector)
+			differenceCover[a] = value;
+			count++;
 		}
 
-		for (int i = 0; i < p; i++) {
-			testCover[i] = 0;
+		dSize = count;
+
+		cout << "starting cover for: " << p << " is: ";
+		for (int x = 0; x < dSize; x++) {
+			cout << differenceCover[x] << " ";
 		}
+		cout << endl;
+	}
+	else {
+		vector<int> sc;
+		for (int i = 0; i < p; i++) {
+			sc.push_back(i);
+		}
+		vector<int> starter = kthCombination(startValue, sc, dSize);
+
+		for (int i = 0; i < starter.size(); i++) {
+			differenceCover[i] = starter[i];
+		}
+	}
+	for (int i = 0; i < p; i++) {
+		testCover[i] = 0;
 	}
 
 	for (int i = 0; i < dSize; i++) {
@@ -264,14 +285,38 @@ int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *t
 	cout << endl;
 
 	if (isCover(p, dSize, differenceCover, testCover)) {
-		cout << "we found it" << endl;
+		cout << "we found it//////////////////////////////////////////////" << endl;
+
+		ofstream myfile;
+		myfile.open((pFile + ".txt").c_str(), ios::trunc);
+		for (int a = 0; a < dSize; a++) {
+			int dif = -1;
+			if (a != 0) {
+				dif = differenceCover[a - 1];
+			}
+			for (int i = dif + 1; i < differenceCover[a]; i++) {
+				myfile << 0;
+			}
+			myfile << 1;
+		}
+		myfile.close();
 
 		return 1;
 	}
 
-	for (int z = 0; choose(p, dSize, differenceCover); z++) {
+	for (int z = startValue; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
-			cout << "it is done" << endl;
+			cout << "it is done /////////////////////////////////////////////////////////////" << endl;
+
+			ofstream myfile;
+			myfile.open((pFile + ".txt").c_str(), ios::trunc);
+			cout << "writing for " << p << endl;
+			for (int a = 0; a < dSize - 1; a++) {
+				myfile << differenceCover[a] << " ";
+
+			}
+			myfile << differenceCover[dSize - 1];
+			myfile.close();
 
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
@@ -280,12 +325,40 @@ int coverOfSize(const int p, int& dSize, int begin, int *differenceCover, int *t
 
 			return 1;
 		}
+		else if (z % (int)(.01*(startValue + instanceStart)) == 0) {
+			struct stat b;
+			if (stat((pFile + ".txt").c_str(), &b) == 0) {
+				cout << "someone else found it //////////////////////////////////////" << endl;
+				return 1;
+			}
 
+			cout << "writing for " << p << endl;
+			ofstream myfile;
+			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
+			for (int a = 0; a < dSize-1; a++) {
+				myfile << differenceCover[a] << " ";
+
+			}
+			myfile << differenceCover[dSize-1];
+			myfile.close();
+		}
+
+		/*cout << "Thread " << id << " z "<< z << " out of " << (startValue+instanceStart) << " " << z % (int)(.01*(startValue + instanceStart)) << " ";
 		for (int i = 0; i < dSize; i++) {
 			cout << differenceCover[i] << " ";
 		}
-		cout << endl;
+		cout << endl;*/
 	}
+
+	{
+		struct stat b;
+		if (stat((pFile + ".txt").c_str(), &b) == 0) {
+			cout << "someone else found it //////////////////////////////////////" << endl;
+			return 1;
+		}
+	}
+
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	return 0;
 } // end coverOfSize
@@ -357,23 +430,17 @@ int isCover(const int p, int dSize, const int *differenceCover, int *testCover) 
 	return 0;
 } // end isCover
 
-void print(const int p, const int *differenceCover, string file) {
+void print(const int p, int dSize, const int *differenceCover, string file) {
 	ofstream out;
 	out.open(file.c_str(), ios::app);
 
-	cout << setw(4) << p;
 	out << setw(4) << p;
-	int f = size(differenceCover, p);
-	cout << setw(9) << f;
+	int f = dSize;
 	out << setw(9) << f;
-	cout << setw(8);
 	out << setw(8);
-	for (int x = 0; x < p; x++)
-		if (differenceCover[x]) {
-			cout << x << setw(3);
-			out << x << setw(3);
-		} // end if
-	cout << endl;
+	for (int x = 0; x < dSize; x++) {
+		out << differenceCover[x] << setw(3);
+	} // end if
 	out << endl;
 
 	out.close();
