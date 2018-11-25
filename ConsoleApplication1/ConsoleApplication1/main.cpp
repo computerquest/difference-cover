@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sstream>
 #include <vector>
+#include <limits> 
 /*
 import operator as op
 def nCr(n, r):
@@ -53,18 +54,34 @@ namespace patch
 
 using namespace std;
 
-unsigned nChoosek(unsigned n, unsigned k)
+unsigned long long
+gcd(unsigned long long x, unsigned long long y)
 {
-	if (k > n) return 0;
-	if (k * 2 > n) k = n - k;
-	if (k == 0) return 1;
-
-	int result = n;
-	for (int i = 2; i <= k; ++i) {
-		result *= (n - i + 1);
-		result /= i;
+	while (y != 0)
+	{
+		unsigned long long t = x % y;
+		x = y;
+		y = t;
 	}
-	return result;
+	return x;
+}
+
+unsigned long long
+nChoosek(unsigned long long n, unsigned long long k)
+{
+	if (k > n)
+		throw std::invalid_argument("invalid argument in choose");
+	unsigned long long r = 1;
+	for (unsigned long long d = 1; d <= k; ++d, --n)
+	{
+		unsigned long long g = gcd(r, d);
+		r /= g;
+		unsigned long long t = n / (d / g);
+		if (r > std::numeric_limits<unsigned long long>::max() / t)
+			throw std::overflow_error("overflow in choose");
+		r *= t;
+	}
+	return r;
 }
 
 vector<int> kthCombination(int k, vector<int> l, int r) {
@@ -220,10 +237,10 @@ void cover(const int p, string out) {
 } // end cover
 
 int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
-	int startValue = 0;
-	int instanceStart = 0;
+	unsigned long long startValue = 0;
+	unsigned long long instanceStart = 0;
 
-	int numCombo = nChoosek(p - 2, dSize - 2);
+	unsigned long long numCombo = nChoosek(p - 2, dSize - 2);
 
 	instanceStart = numCombo / nn;
 	if (id < numCombo%nn) {
@@ -237,14 +254,23 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		startValue += numCombo % nn + id * instanceStart;
 	}
 
-	cout << "Thread: " << id << " " << startValue << " " << startValue + instanceStart << endl;
+	cout << "Thread: " << id << " " << startValue << " " << startValue + instanceStart << " out of " << numCombo << endl;
+
+	unsigned long long startingIndex = startValue;
 
 	struct stat buffer;
 	if (stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
 		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
 		string line;
 		getline(infile, line);
+
+		string linea;
+		getline(infile, linea);
+		
 		infile.close();
+
+		std::stringstream  lineaStream(linea);
+		lineaStream >> startingIndex;
 
 		int value = 0;
 		std::stringstream  lineStream(line);
@@ -257,12 +283,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		}
 
 		dSize = count;
-
-		cout << "starting cover for: " << p << " is: ";
-		for (int x = 0; x < dSize; x++) {
-			cout << differenceCover[x] << " ";
-		}
-		cout << endl;
 	}
 	else {
 		vector<int> sc;
@@ -275,12 +295,14 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 			differenceCover[i] = starter[i];
 		}
 	}
+	
 	for (int i = 0; i < p; i++) {
 		testCover[i] = 0;
 	}
 
-	for (int i = 0; i < dSize; i++) {
-		cout << differenceCover[i] << " ";
+	cout << "Thread " << id << " starting cover for: " << p << " is: [" << startingIndex << "] ";
+	for (int x = 0; x < dSize; x++) {
+		cout << differenceCover[x] << " ";
 	}
 	cout << endl;
 
@@ -304,7 +326,11 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		return 1;
 	}
 
-	for (int z = startValue; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
+	unsigned long long writeTime = (unsigned long long)(.01*(instanceStart));
+	if (writeTime > 30000000) {
+		writeTime = 30000000;
+	}
+	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
 			cout << "it is done /////////////////////////////////////////////////////////////" << endl;
 
@@ -325,21 +351,21 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 
 			return 1;
 		}
-		else if (z % (int)(.01*(startValue + instanceStart)) == 0) {
+		else if (z % writeTime == 0) {
 			struct stat b;
 			if (stat((pFile + ".txt").c_str(), &b) == 0) {
 				cout << "someone else found it //////////////////////////////////////" << endl;
 				return 1;
 			}
 
-			cout << "writing for " << p << endl;
+			cout << "Thread " << id << " writing for " << p << endl;
 			ofstream myfile;
 			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
 			for (int a = 0; a < dSize-1; a++) {
 				myfile << differenceCover[a] << " ";
-
 			}
-			myfile << differenceCover[dSize-1];
+			myfile << differenceCover[dSize-1] << endl;
+			myfile << z << endl;
 			myfile.close();
 		}
 
