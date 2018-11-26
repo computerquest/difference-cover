@@ -231,6 +231,10 @@ void cover(const int p, string out) {
 			break;
 		} // end if
 
+		cout << "Thread " << id << " is waiting for the rest" << endl;
+
+		MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
 		{
 			struct stat b;
 			if (stat((pFile + ".txt").c_str(), &b) == 0) {
@@ -267,6 +271,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	unsigned long long startingIndex = startValue+1;
 
 	struct stat buffer;
+	bool reset = true; //this is to make sure when the computer goes to the next dSize it still works
 	if (stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
 		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
 		string line;
@@ -276,9 +281,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		getline(infile, linea);
 
 		infile.close();
-
-		std::stringstream  lineaStream(linea);
-		lineaStream >> startingIndex;
 
 		int value = 0;
 		std::stringstream  lineStream(line);
@@ -290,9 +292,18 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 			count++;
 		}
 
-		dSize = count;
+		if (count >= dSize) {
+			dSize = count;
+
+			std::stringstream  lineaStream(linea);
+			lineaStream >> startingIndex;
+
+			reset = false;
+		}
 	}
-	else {
+	
+	
+	if(reset){
 		vector<int> sc;
 		for (int i = 0; i < p; i++) {
 			sc.push_back(i);
@@ -412,9 +423,6 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		}
 	}
 	
-	cout << "Thread " << id << " is waiting for the rest" << endl;
-
-	MPI_Barrier(MPI_COMM_WORLD);
 
 	return 0;
 } // end coverOfSize
