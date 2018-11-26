@@ -238,7 +238,7 @@ void cover(const int p, string out) {
 		{
 			struct stat b;
 			if (stat((pFile + ".txt").c_str(), &b) == 0) {
-				cout << "someone else found it //////////////////////////////////////" << endl;
+				cout << "someone else found " << p << "//////////////////////////////////////" << endl;
 				return;
 			}
 		}
@@ -355,7 +355,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	}
 
 	if (isCover(p, dSize, differenceCover, testCover)) {
-		cout << "we found it//////////////////////////////////////////////" << endl;
+		cout << "we found " << p << "//////////////////////////////////////////////" << endl;
 
 		ofstream myfile;
 		myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
@@ -377,7 +377,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(p, dSize, differenceCover); z++) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
-			cout << "it is done /////////////////////////////////////////////////////////////" << endl;
+			cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
 
 			ofstream myfile;
 			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
@@ -393,7 +393,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		else if (z % writeTime == 0) {
 			struct stat b;
 			if (stat((pFile + ".txt").c_str(), &b) == 0) {
-				cout << "someone else found it //////////////////////////////////////" << endl;
+				cout << "someone else found " << p << "//////////////////////////////////////" << endl;
 				return 1;
 			}
 
@@ -418,7 +418,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	{
 		struct stat b;
 		if (stat((pFile + ".txt").c_str(), &b) == 0) {
-			cout << "someone else found it //////////////////////////////////////" << endl;
+			cout << "someone else found " << p << "//////////////////////////////////////" << endl;
 			return 1;
 		}
 	}
