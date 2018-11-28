@@ -93,7 +93,7 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 		return l;
 	}
 	else {
-		long long i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
+		unsigned long long i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
 		if (k < i) {
 			vector<int> ans;
 			ans.push_back(l[0]);
@@ -126,7 +126,11 @@ int choose(const int p, int dSize, int *pattern);
 
 int isCover(const int p, int dSize, const int *differenceCover, int *testCover);
 
+bool check();
+
 void print(const int p, int dSize, const int *differenceCover, string file);
+
+void quicksave(const int p, int dSize, unsigned long long pos, const int *differenceCover);
 
 inline int size(const int *cover, const int p);
 
@@ -212,7 +216,7 @@ void cover(const int p, string out) {
 		} // end if
 
 	//these can and should be minimized in the future
-	int *differenceCover = new int[p];
+	int *differenceCover = new int[max];
 	int *testCover = new int[p];
 
 	for (int x = min; x <= max; x++) {
@@ -235,13 +239,7 @@ void cover(const int p, string out) {
 
 		MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
 
-		{
-			struct stat b;
-			if (stat((pFile + ".txt").c_str(), &b) == 0) {
-				cout << "someone else found " << p << "//////////////////////////////////////" << endl;
-				return;
-			}
-		}
+		check();
 	}
 
 	delete[] testCover;
@@ -323,24 +321,9 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 	for (int x = 0; x < dSize; x++) {
 		cout << differenceCover[x] << " ";
 	}
-	cout << endl;
 
 	{
-		cout << "Thread: " << id << " startng cover ";
-
-		{
-			vector<int> sc;
-			for (int i = 0; i < p; i++) {
-				sc.push_back(i);
-			}
-			vector<int> starter = kthCombination(startValue, sc, dSize);
-
-			for (int i = 0; i < starter.size(); i++) {
-				cout << starter[i] << " ";
-			}
-		}
-
-		cout << "ending cover ";
+		cout << " ending cover is ";
 		{
 			vector<int> sc;
 			for (int i = 0; i < p; i++) {
@@ -354,17 +337,12 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		}
 	}
 
+	cout << endl;
+
 	if (isCover(p, dSize, differenceCover, testCover)) {
 		cout << "we found " << p << "//////////////////////////////////////////////" << endl;
 
-		ofstream myfile;
-		myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
-		for (int a = 0; a < dSize - 1; a++) {
-			myfile << differenceCover[a] << " ";
-		}
-		myfile << differenceCover[dSize - 1] << endl;
-		myfile << startValue << endl;
-		myfile.close();
+		quicksave(p, dSize, 0, differenceCover);
 		
 		return 1;
 	}
@@ -379,33 +357,15 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		if (isCover(p, dSize, differenceCover, testCover)) {
 			cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
 
-			ofstream myfile;
-			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
-			for (int a = 0; a < dSize - 1; a++) {
-				myfile << differenceCover[a] << " ";
-			}
-			myfile << differenceCover[dSize - 1] << endl;
-			myfile << z << endl;
-			myfile.close();
+			quicksave(p, dSize, z, differenceCover);
 
 			return 1;
 		}
 		else if (z % writeTime == 0) {
-			struct stat b;
-			if (stat((pFile + ".txt").c_str(), &b) == 0) {
-				cout << "someone else found " << p << "//////////////////////////////////////" << endl;
-				return 1;
-			}
+			check();
 
 			cout << "Thread " << id << " writing for " << p << " complete " << (double) (z-startValue)/(instanceStart) << endl;
-			ofstream myfile;
-			myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
-			for (int a = 0; a < dSize - 1; a++) {
-				myfile << differenceCover[a] << " ";
-			}
-			myfile << differenceCover[dSize - 1] << endl;
-			myfile << z << endl;
-			myfile.close();
+			quicksave(p, dSize, z, differenceCover);
 		}
 
 		/*cout << "Thread " << id << " z "<< z << " out of " << (startValue+instanceStart) << " " << z % (int)(.01*(startValue + instanceStart)) << " ";
@@ -415,14 +375,7 @@ int coverOfSize(const int p, int& dSize, int *differenceCover, int *testCover) {
 		cout << endl;*/
 	}
 
-	{
-		struct stat b;
-		if (stat((pFile + ".txt").c_str(), &b) == 0) {
-			cout << "someone else found " << p << "//////////////////////////////////////" << endl;
-			return 1;
-		}
-	}
-	
+	check();
 
 	return 0;
 } // end coverOfSize
@@ -442,10 +395,6 @@ int choose(const int p, int dSize, int *pattern) {
 
 				break;
 			}
-		}
-
-		if (pattern[1] != 1) {
-			return 0;
 		}
 
 		return 1;
@@ -475,6 +424,17 @@ int isCover(const int p, int dSize, const int *differenceCover, int *testCover) 
 	return 0;
 } // end isCover
 
+void quicksave(const int p, int dSize, unsigned long long pos, const int *differenceCover) {
+	ofstream myfile;
+	myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
+	for (int a = 0; a < dSize - 1; a++) {
+		myfile << differenceCover[a] << " ";
+	}
+	myfile << differenceCover[dSize - 1] << endl;
+	myfile << pos << endl;
+	myfile.close();
+}
+
 void print(const int p, int dSize, const int *differenceCover, string file) {
 	ofstream out;
 	out.open(file.c_str(), ios::app);
@@ -494,6 +454,16 @@ void print(const int p, int dSize, const int *differenceCover, string file) {
 	cout << endl;
 	out.close();
 } // end print
+
+bool check() {
+	struct stat b;
+	if (stat((pFile + ".txt").c_str(), &b) == 0) {
+		cout << "someone else found " << p << "//////////////////////////////////////" << endl;
+		return 1;
+	}
+
+	return 0;
+}
 
 int size(const int *cover, const int p) {
 	int f = 0;
