@@ -10,5 +10,5 @@ do
 		e=1
 	fi
 	echo $e
-        mpirun -np $e blah solutions.txt 100 1000 1300000000
+        mpirun -np $e blah solutions.txt 20 1000 1000000
 done
