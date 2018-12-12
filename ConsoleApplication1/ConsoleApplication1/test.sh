@@ -5,10 +5,10 @@ do
 	b=${b%.*}
 	c=$((100-$b))
 	d=$(($a*$c))
-	e=$(($d/100))
-	if (( $e == 0 )); then
+	e=$(($d/100-4))
+	if (( $e <= 0 )); then
 		e=1
 	fi
 	echo $e
-        mpirun -np $e blah solutions.txt 20 1000 1000000
+        mpirun -np $e blah solutions.txt 100 1000 1300000000
 done
