@@ -409,10 +409,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 		return 1;
 	}
 
-	unsigned long long writeTime = (unsigned long long)(.01*(instanceStart));
-	if (writeTime > 40000000 || writeTime < 1000000) {
-		writeTime = 40000000;
-	}
+	unsigned long long writeTime = 100000000;
 
 	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
@@ -429,7 +426,10 @@ int coverOfSize(int *differenceCover, int *testCover) {
 			}
 
 			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z - startValue) / (instanceStart) << endl;
-			quicksave(z, differenceCover);
+
+			if (batchSize == -1) {
+				quicksave(z, differenceCover);
+			}
 		}
 
 		/*cout << "Thread " << id << " z "<< z << " out of " << (startValue+instanceStart) << " " << z % (int)(.01*(startValue + instanceStart)) << " ";
