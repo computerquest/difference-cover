@@ -268,7 +268,7 @@ void cover(string out) {
 
 			infile.close();
 
-			lastComb = atoi(line.c_str());
+			lastComb = strtoull(line.c_str(), 0, 16);
 			dSize = atoi(linea.c_str());
 
 			cout << "reading yeilded: " << dSize << " " << lastComb << endl;
