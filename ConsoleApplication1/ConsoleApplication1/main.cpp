@@ -138,7 +138,7 @@ int id; //the id of this process
 int ierr;
 int nn; //number of connected nodes
 string pFile = "";
-int batchSize = -1;
+unsigned long long batchSize = 0;
 unsigned long long lastComb = 0;
 int p = -1;
 int dSize = -1;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
 
 		cover(outFile);
 
-		if (id == 0 && batchSize != -1) {
+		if (id == 0 && batchSize != 0) {
 			unsigned long long numCombo = nChoosek(p - 2, dSize - 2);
 
 			cout << "Thread: " << id << " batch completed." << endl;
@@ -219,6 +219,8 @@ int main(int argc, char *argv[]) {
 				myfilea << dSize + 1 << endl;
 			}
 			myfilea.close();
+
+			break;
 		}
 
 		p++;
@@ -254,11 +256,9 @@ void cover(string out) {
 	int *differenceCover = new int[max];
 	int *testCover = new int[p];
 
-	int lc = -1; //this is to make sure that when lastCombo changes that there is a backup
-	if (batchSize != -1) {
+	if (batchSize != 0) {
 		struct stat buffer;
 		if (stat((pFile + "_batch.txt").c_str(), &buffer) == 0) {
-			cout << "reading for the last batch run " << endl;
 			ifstream infile((pFile + "_batch.txt").c_str());
 			string line;
 			getline(infile, line);
@@ -269,8 +269,9 @@ void cover(string out) {
 			infile.close();
 
 			lastComb = atoi(line.c_str());
-			lc = lastComb;
 			dSize = atoi(linea.c_str());
+
+			cout << "reading yeilded: " << dSize << " " << lastComb << endl;
 		}
 	}
 
@@ -293,7 +294,7 @@ void cover(string out) {
 
 		MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
 
-		if (check() || batchSize != -1) {
+		if (check() || batchSize != 0) {
 			return;
 		}
 
@@ -310,7 +311,8 @@ int coverOfSize(int *differenceCover, int *testCover) {
 
 	unsigned long long numCombo = nChoosek(p - 2, dSize - 2);
 
-	if (batchSize == -1 || nn * batchSize + lastComb > numCombo) {
+	if (batchSize == 0 || nn * batchSize + lastComb > numCombo) {
+		cout << "irregular init " << nn * batchSize+lastComb << " against " << numCombo << endl;
 		instanceStart = numCombo / nn;
 		if (id < numCombo%nn) {
 			instanceStart += 1;
@@ -323,7 +325,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 			startValue += numCombo % nn + id * instanceStart;
 		}
 	}
-	else if (batchSize != -1) {
+	else if (batchSize != 0) {
 		startValue = lastComb + batchSize * id;
 		instanceStart = batchSize;
 	}
@@ -332,7 +334,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 
 	struct stat buffer;
 	bool reset = true; //this is to make sure when the computer goes to the next dSize it still works
-	if (batchSize == -1 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
+	if (batchSize == 0 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
 		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
 		string line;
 		getline(infile, line);
@@ -425,7 +427,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 				return 1;
 			}
 
-			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z - startValue) / (instanceStart) << endl;
+			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z) / (startValue+instanceStart) << endl;
 
 
 			quicksave(z, differenceCover);
@@ -460,7 +462,7 @@ int choose(int *pattern) {
 
 		return 1;
 	} // end else if
-	cout << "something is super wrong //////////////////////////////////////////////////////////" << endl;
+//	cout << "something is super wrong ////////////////////////////////////////////////////////// " << pattern[dSize-1]  << " " << p << endl;
 } // end choose
 
 int isCover( const int *differenceCover, int *testCover) {
@@ -486,7 +488,7 @@ int isCover( const int *differenceCover, int *testCover) {
 } // end isCover
 
 void quicksave( unsigned long long pos, const int *differenceCover) {
-	if (batchSize != -1) {
+	if (batchSize != 0) {
 		return;
 	}
 
