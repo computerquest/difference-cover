@@ -293,7 +293,7 @@ void cover(string out) {
 
 		MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
 
-		if (check()) {
+		if (check() || batchSize != -1) {
 			return;
 		}
 
@@ -409,7 +409,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 		return 1;
 	}
 
-	unsigned long long writeTime = 100000000;
+	unsigned long long writeTime = 47000000;
 
 	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
@@ -427,9 +427,8 @@ int coverOfSize(int *differenceCover, int *testCover) {
 
 			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z - startValue) / (instanceStart) << endl;
 
-			if (batchSize == -1) {
-				quicksave(z, differenceCover);
-			}
+
+			quicksave(z, differenceCover);
 		}
 
 		/*cout << "Thread " << id << " z "<< z << " out of " << (startValue+instanceStart) << " " << z % (int)(.01*(startValue + instanceStart)) << " ";

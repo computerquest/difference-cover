@@ -1,7 +1,7 @@
 while true
 do
 	a=$(nproc --all)
-	b=$(grep 'cpu ' /proc/stat | awk '{usage=($2+$4)/($2+$4+$5)*100} END {print usage}')
+	b=$(top -b -n2 -p 1 | fgrep "Cpu(s)" | tail -1 | awk -F'id,' -v prefix="$prefix" '{ split($1, vs, ","); v=vs[length(vs)]; sub("%", "", v); printf "%s%.1f\n", prefix, 100 - v }')
 	b=${b%.*}
 	c=$((100-$b))
 	d=$(($a*$c))
@@ -10,5 +10,5 @@ do
 		e=1
 	fi
 	echo $e
-        mpirun -np $e blah solutions.txt 100 1000 1300000000
+        mpirun -np $e blah solutions.txt 100 10000 235000000
 done
