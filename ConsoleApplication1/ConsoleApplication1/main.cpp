@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
 
 		cover(outFile);
 
-		if (id == 0 && batchSize != 0) {
+		if (id == 0) {
 			unsigned long long numCombo = nChoosek(p - 2, dSize - 2);
 
 			cout << "Thread: " << id << " batch completed." << endl;
@@ -218,8 +218,10 @@ int main(int argc, char *argv[]) {
 				myfilea << 0 << endl;
 				myfilea << dSize + 1 << endl;
 			}
-			myfilea.close();
+			myfilea.close();;
+		}
 
+		if(batchSize != 0) {
 			break;
 		}
 
@@ -403,12 +405,15 @@ int coverOfSize(int *differenceCover, int *testCover) {
 
 	cout << " out of " << numCombo << endl;
 
+	int ans = 0;
+
 	if (isCover(differenceCover, testCover)) {
 		//cout << "we found " << p << "//////////////////////////////////////////////" << endl;
 
 		quicksave(0, differenceCover);
 
-		return 1;
+		//return 1;
+		ans = 1;
 	}
 
 	unsigned long long writeTime = 47000000;
@@ -420,11 +425,13 @@ int coverOfSize(int *differenceCover, int *testCover) {
 
 			quicksave(z, differenceCover);
 
-			return 1;
+			//return 1;
+			ans = 1;
 		}
 		else if (z % writeTime == 0) {
 			if (check()) {
-				return 1;
+				//return 1;
+				ans = 1;
 			}
 
 			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z) / (startValue+instanceStart) << endl;
@@ -440,7 +447,7 @@ int coverOfSize(int *differenceCover, int *testCover) {
 		cout << endl;*/
 	}
 
-	return 0;
+	return ans;
 } // end coverOfSize
 
 int choose(int *pattern) {
