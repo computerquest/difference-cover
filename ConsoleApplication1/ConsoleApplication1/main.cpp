@@ -408,12 +408,11 @@ int coverOfSize(int *differenceCover, int *testCover) {
 	int ans = 0;
 
 	if (isCover(differenceCover, testCover)) {
-		//cout << "we found " << p << "//////////////////////////////////////////////" << endl;
+		cout << "we found " << p << "//////////////////////////////////////////////" << endl;
 
 		quicksave(0, differenceCover);
 
-		//return 1;
-		ans = 1;
+		return 1;
 	}
 
 	unsigned long long writeTime = 47000000;
@@ -421,17 +420,15 @@ int coverOfSize(int *differenceCover, int *testCover) {
 	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
 		if (isCover(differenceCover, testCover)) {
-			//cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
+			cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
 
 			quicksave(z, differenceCover);
 
-			//return 1;
-			ans = 1;
+			return 1;
 		}
 		else if (z % writeTime == 0) {
 			if (check()) {
-				//return 1;
-				ans = 1;
+				return 1;
 			}
 
 			cout << "Thread " << id << " writing for " << p << " complete " << (double)(z) / (startValue+instanceStart) << endl;
