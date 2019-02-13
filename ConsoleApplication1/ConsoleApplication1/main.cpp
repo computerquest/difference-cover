@@ -120,7 +120,7 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 void cover(string out);
 
-int coverOfSize(int *differenceCover, int *testCover, int startingThird);
+int coverOfSize(int *differenceCover, int *testCover, int& startingThird);
 
 int choose(int *pattern);
 
@@ -130,7 +130,7 @@ bool check();
 
 void print(const int *differenceCover, string file);
 
-void quicksave(unsigned long long pos, const int *differenceCover);
+void quicksave(unsigned long long pos, int startingThird, const int *differenceCover);
 
 inline int size(const int *cover, const int p);
 
@@ -308,7 +308,7 @@ void cover(string out) {
 	delete[] differenceCover;
 } // end cover
 
-int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
+int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 	unsigned long long startValue = 0;
 	unsigned long long instanceStart = 0;
 
@@ -338,13 +338,16 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 
 	struct stat buffer;
 	bool reset = true; //this is to make sure when the computer goes to the next dSize it still works
-	/*if (batchSize == 0 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
+	if (batchSize == 0 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
 		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
 		string line;
 		getline(infile, line);
 
 		string linea;
 		getline(infile, linea);
+
+		string lineb;
+		getline(infile, lineb);
 
 		infile.close();
 
@@ -358,15 +361,22 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 			count++;
 		}
 
-		if (count >= dSize) {
+
+		if (count >= dSize && differenceCover[2] < startingThird) {
 			dSize = count;
 
 			std::stringstream  lineaStream(linea);
 			lineaStream >> startingIndex;
 
 			reset = false;
+			cout << "the reset is cancelled after reading " << line << " | " << dSize << " " << startingThird << endl;
 		}
-	}*/
+
+		if(differenceCover[2] < startingThird) {
+			startingThird = differenceCover[2];
+		}
+
+	}
 
 
 	if (reset) {
@@ -415,11 +425,14 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 
 	if (isCover(differenceCover, testCover)) {
 		cout << "we found (it is done)" << p << "//////////////////////////////////////////////" << endl;
-
-		quicksave(0, differenceCover);
-
+		for (int i = 0; i < dSize; i++) {
+			cout << differenceCover[i] << " ";
+		}
+		cout << endl;
 		//return 1;
 	}
+
+	quicksave(startValue, startingThird, differenceCover);
 
 	unsigned long long writeTime = 47000000;
 
@@ -437,7 +450,7 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 				cout << differenceCover[i] << " ";
 			}
 			cout << endl;
-			quicksave(z, differenceCover);
+			quicksave(z, startingThird, differenceCover);
 
 			//return 1;
 		}
@@ -453,7 +466,7 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 			//cout << "Thread " << id << " writing for " << p << " complete " << (double)(z) / (startValue+instanceStart) << endl;
 
 
-			quicksave(z, differenceCover);
+			quicksave(z, startingThird, differenceCover);
 		} /*else {
 
             //cout << "Thread " << id << " z " << z << " out of " << (startValue + instanceStart) << " is: "; // << z % (int)(.01*(startValue + instanceStart)) << " ";
@@ -511,7 +524,7 @@ int isCover( const int *differenceCover, int *testCover) {
 	return 0;
 } // end isCover
 
-void quicksave( unsigned long long pos, const int *differenceCover) {
+void quicksave(unsigned long long pos, int startingThird, const int *differenceCover) {
 	if (batchSize != 0) {
 		return;
 	}
@@ -523,6 +536,7 @@ void quicksave( unsigned long long pos, const int *differenceCover) {
 	}
 	myfile << differenceCover[dSize - 1] << endl;
 	myfile << pos << endl;
+	myfile << startingThird << endl;
 	myfile.close();
 }
 
