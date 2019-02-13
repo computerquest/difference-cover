@@ -312,8 +312,8 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 	unsigned long long startValue = 0;
 	unsigned long long instanceStart = 0;
 
-	unsigned long long numCombo = nChoosek(startingThird-1, dSize - 3);
-
+	unsigned long long numCombo = nChoosek(p+2-startingThird-3, dSize - 3);
+    cout << "number of combos is " << numCombo << endl;
 	if (batchSize == 0 || nn * batchSize + lastComb > numCombo) {
 		instanceStart = numCombo / nn;
 		if (id < numCombo%nn) {
@@ -338,7 +338,7 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 
 	struct stat buffer;
 	bool reset = true; //this is to make sure when the computer goes to the next dSize it still works
-	if (batchSize == 0 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
+	/*if (batchSize == 0 && stat((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), &buffer) == 0) {
 		ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
 		string line;
 		getline(infile, line);
@@ -366,7 +366,7 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 
 			reset = false;
 		}
-	}
+	}*/
 
 
 	if (reset) {
@@ -414,54 +414,54 @@ int coverOfSize(int *differenceCover, int *testCover, int startingThird) {
 	int ans = 0;
 
 	if (isCover(differenceCover, testCover)) {
-		//cout << "we found " << p << "//////////////////////////////////////////////" << endl;
+		cout << "we found (it is done)" << p << "//////////////////////////////////////////////" << endl;
 
 		quicksave(0, differenceCover);
 
-		return 1;
+		//return 1;
 	}
 
 	unsigned long long writeTime = 47000000;
 
-	cout << endl;
-	for (int i = 0; i < dSize; i++) {
+	/*for (int i = 0; i < dSize; i++) {
 		cout << differenceCover[i] << " ";
 	}
-	cout << endl;
+	cout << endl;*/
 
-	cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
+	//cout << "Thread " << id << " starting Index: " << startingIndex << " ending condition " << startValue + instanceStart << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
-		cout << "Thread: " << id << " z: " << z << " upper bound: " << startValue + instanceStart << endl;
-		if (isCover(differenceCover, testCover)) {
-			//cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
+        //cout << "Thread " << id << " z " << z << " out of " << (startValue + instanceStart) << " is: ";
+        if (isCover(differenceCover, testCover)) {
+			cout << p << " is done /////////////////////////////////////////////////////////////" << endl;
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
 			}
 			cout << endl;
 			quicksave(z, differenceCover);
 
-			return 1;
+			//return 1;
 		}
 		else if (z % writeTime == 0) {
-			for (int i = 0; i < dSize; i++) {
+			/*for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
 			}
-			cout << endl;
+			cout << endl;*/
 			if (check()) {
-				return 1;
+				//return 1;
 			}
 
 			//cout << "Thread " << id << " writing for " << p << " complete " << (double)(z) / (startValue+instanceStart) << endl;
 
 
 			quicksave(z, differenceCover);
-		}
+		} /*else {
 
-		//cout << "Thread " << id << " z " << z << " out of " << (startValue + instanceStart) << " is: "; // << z % (int)(.01*(startValue + instanceStart)) << " ";
-		for (int i = 0; i < dSize; i++) {
-			cout << differenceCover[i] << " ";
-		}
-		cout << endl;
+            //cout << "Thread " << id << " z " << z << " out of " << (startValue + instanceStart) << " is: "; // << z % (int)(.01*(startValue + instanceStart)) << " ";
+            for (int i = 0; i < dSize; i++) {
+                cout << differenceCover[i] << " ";
+            }
+            cout << endl;
+        }*/
 	}
 
 	return ans;
