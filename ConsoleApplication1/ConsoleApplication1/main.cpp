@@ -293,10 +293,9 @@ void cover(string out) {
 		dSize++;
 	}
 
-	for (int i = 0; i < p; i++) {
-		testCover[i] = 0;
-	}
-
+	delete[] testCover;
+delete[] differenceCover;
+}
 int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 	unsigned long long startValue = 0;
 	unsigned long long instanceStart = 0;
