@@ -346,20 +346,20 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 			count++;
 		}
 
+		unsigned long long tempNum = 1;
+		std::stringstream  lineaStream(linea);
+		lineaStream >> tempNum;
 
-		if (count >= dSize && differenceCover[2] < startingThird) {
+		if (count > dSize || count == dSize & differenceCover[2] < startingThird || count == dSize & differenceCover[2] == startingThird & tempNum > startingIndex) {
 			dSize = count;
 
 			std::stringstream  lineaStream(linea);
 			lineaStream >> startingIndex;
 
+			startingThird = differenceCover[2];
+
 			reset = false;
 		}
-
-		if(differenceCover[2] < startingThird) {
-			startingThird = differenceCover[2];
-		}
-
 	}
 
 
