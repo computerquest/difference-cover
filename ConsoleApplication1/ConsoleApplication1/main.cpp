@@ -361,10 +361,12 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 			startingThird = differenceCover[2];
 		}
 
+		cout << "reading" << endl;
 	}
 
 
 	if (reset) {
+		cout << "resetting" << endl;
 		vector<int> sc;
 		sc.push_back(0);
 		sc.push_back(1);
@@ -392,14 +394,27 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 
 	unsigned long long writeTime = 47000000;
 
+	cout << endl;
+	for(int i = 0; i < dSize; i++) {
+		cout << differenceCover[i] << " ";
+	}
+	cout << endl;
 	for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
-        if (isCover(differenceCover, testCover)) {
+        cout << endl;
+        for(int i = 0; i < dSize; i++) {
+        	cout << differenceCover[i] << " ";
+        }
+        cout << endl;
+
+		if (isCover(differenceCover, testCover)) {
+        	cout << "cover found" << endl;
 			quicksave(z, startingThird, differenceCover);
 
 			return 1;
 		}
 		else if (z % writeTime == 0) {
 			if (check()) {
+				cout << "someone else found the cover" << endl;
 				return 1;
 			}
 
