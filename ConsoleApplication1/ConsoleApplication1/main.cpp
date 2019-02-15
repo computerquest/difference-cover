@@ -387,7 +387,16 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 	int ans = 0;
 
 	if (isCover(differenceCover, testCover)) {
-		return 1;
+		ofstream myfilea;
+		myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+		for (int a = 0; a < dSize - 1; a++) {
+			myfilea << differenceCover[a] << " ";
+		}
+		myfilea << differenceCover[dSize - 1] << endl;
+		myfilea.close();
+
+		print(differenceCover, out);
+		//return 1;
 	}
 
 	quicksave(startValue, startingThird, differenceCover);
@@ -410,12 +419,33 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
         	cout << "cover found" << endl;
 			quicksave(z, startingThird, differenceCover);
 
-			return 1;
+			ofstream myfilea;
+			myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+			for (int a = 0; a < dSize - 1; a++) {
+				myfilea << differenceCover[a] << " ";
+			}
+			myfilea << differenceCover[dSize - 1] << endl;
+			myfilea.close();
+
+			print(differenceCover, out);
+
+			//return 1;
 		}
 		else if (z % writeTime == 0) {
 			if (check()) {
 				cout << "someone else found the cover" << endl;
-				return 1;
+
+				ofstream myfilea;
+				myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+				for (int a = 0; a < dSize - 1; a++) {
+					myfilea << differenceCover[a] << " ";
+				}
+				myfilea << differenceCover[dSize - 1] << endl;
+				myfilea.close();
+
+				print(differenceCover, out);
+
+				//return 1;
 			}
 
 			quicksave(z, startingThird, differenceCover);
