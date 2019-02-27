@@ -453,23 +453,34 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 				}
 				cout << endl;
 
+				cout << "1" << endl;
 				if (differenceCover[2] != startingThird) {
 					break;
 				}
 
+				cout << "2" << endl;
 				if (isCover(differenceCover, testCover)) {
+					cout << "3" << endl;
 					cout << "cover found" << endl;
+					cout << count << " " << startingThird << endl;
 					quicksave(count, startingThird, differenceCover);
+					cout << "what up bois" << endl;
+					cout << "4" << endl;
 
 					ofstream myfilea;
 					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+					cout << "5" << endl;
 					for (int a = 0; a < dSize - 1; a++) {
 						myfilea << differenceCover[a] << " ";
 					}
+					cout << "6" << endl;
 					myfilea << differenceCover[dSize - 1] << endl;
+					cout << "7" << endl;
 					myfilea.close();
+					cout << "8" << endl;
 
 					print(differenceCover, "testing.txt");
+					cout << "9" << endl;
 
 					//return 1;
 				}
@@ -592,16 +603,26 @@ void quicksave(unsigned long long pos, int startingThird, const int *differenceC
 	if (batchSize != 0) {
 		return;
 	}
-
+	cout << pFile << " " << id << endl;
+	cout << "boooooom " << pFile + "_" << endl;
+	cout << "boom4" << patch::stringMaker(55) << endl;
+	cout << "booom3" << patch::stringMaker(id) + ".txt" << endl;
+	cout << "booom2 the cstr " << (pFile + "_" + patch::stringMaker(id) + ".txt").c_str() << endl;
 	ofstream myfile;
 	myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
+	cout << "a" << endl;
 	for (int a = 0; a < dSize - 1; a++) {
 		myfile << differenceCover[a] << " ";
 	}
+	cout << "b" << endl;
 	myfile << differenceCover[dSize - 1] << endl;
+	cout << "c" << endl;
 	myfile << pos << endl;
+	cout << "d" << endl;
 	myfile << startingThird << endl;
+	cout << "e" << endl;
 	myfile.close();
+	cout << "f" << endl;
 }
 
 void print(const int *differenceCover, string file) {
