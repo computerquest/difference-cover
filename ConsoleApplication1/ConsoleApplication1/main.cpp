@@ -87,6 +87,7 @@ nChoosek(unsigned long long n, unsigned long long k)
 vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 	if (r == 0) {
 		vector<int> ans;
+		cout << "returning " << ans.size() << endl;
 		return ans;
 	}
 	else if (l.size() == r) {
@@ -104,6 +105,8 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 			ans.insert(ans.end(), secondary.begin(), secondary.end());
 
+			cout << "returning " << ans.size() << endl;
+
 			return ans;
 		}
 		else {
@@ -113,6 +116,7 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 			vector<int> secondary = kthCombination(k - i, tertiary, r);
 
+			cout << "returning " << ans.size() << endl;
 			return secondary;
 		}
 	}
@@ -379,12 +383,21 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 		sc.push_back(1);
 		for (int i = startingThird; i < p; i++) {
 			sc.push_back(i);
+			cout << "added " << sc.back() << endl;
 		}
-		vector<int> starter = kthCombination(startValue, sc, dSize);
-
+		cout << "doing the check" << endl;
+		for(int i = 0; i < sc.size(); i++) {
+			sc[i];
+		}
+		cout << "1 " << startValue << " " << sc.size() << " " << dSize << endl;
+		vector<int> starter;
+		cout << "the mem adress is " << &starter << endl;
+		starter = kthCombination(startValue, sc, dSize);
+		cout << "2" << endl;
 		for (int i = 0; i < starter.size(); i++) {
 			differenceCover[i] = starter[i];
 		}
+		cout << "3" << endl;
 	}
 
 	for (int i = 0; i < p; i++) {
@@ -454,7 +467,7 @@ int coverOfSize(int *differenceCover, int *testCover, int& startingThird) {
 				cout << endl;
 
 				cout << "1" << endl;
-				if (differenceCover[2] != startingThird) {
+				if (differenceCover[2] != startingThird || differenceCover[1] != 1) {
 					break;
 				}
 
