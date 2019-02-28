@@ -116,11 +116,9 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 void cover(string out);
 
-int coverOfSize(int *differenceCover, int *testCover, int &startingThird);
-
 int choose(int *pattern);
 
-int choose(int *pattern, int localp);
+int choose(int *pattern, int localp, int localdSize, int safe);
 
 int isCover(const int *differenceCover, int *testCover);
 
@@ -131,6 +129,9 @@ void print(const int *differenceCover, string file);
 void quicksave(unsigned long long pos, int startingThird, const int *differenceCover);
 
 inline int size(const int *cover, const int p);
+
+int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, int lock,
+                  vector<int> starting);
 
 int id; //the id of this process
 int ierr;
@@ -267,10 +268,13 @@ void cover(string out) {
         }
     }
 
+    vector<int> starting;
+    starting.push_back(0);
+    starting.push_back(1);
     while (dSize <= max) {
         for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
             cout << "the new starting third is " << i << endl;
-            if (coverOfSize(differenceCover, testCover, i)) {
+            if (recursiveLock(differenceCover, testCover, p, dSize, i, p - 1, starting)) {
                 if (isCover(differenceCover, testCover)) {
                     ofstream myfilea;
                     myfilea.open((pFile + ".txt").c_str(), ios::trunc);
@@ -301,52 +305,38 @@ void cover(string out) {
     delete[] differenceCover;
 } // end cover
 
-int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
-    unsigned long long startValue = 0;
-    unsigned long long instanceStart = 0;
-
-    unsigned long long numCombo = nChoosek(p + 2 - startingThird - 3, dSize - 3);
-    if (batchSize == 0 || nn * batchSize + lastComb > numCombo) {
-        instanceStart = numCombo / nn;
-        if (id < numCombo % nn) {
-            instanceStart += 1;
-
-            if (id != 0) {
-                startValue += id * instanceStart;
-            }
-        } else {
-            startValue += numCombo % nn + id * instanceStart;
-        }
-    } else if (batchSize != 0) {
-        startValue = lastComb + batchSize * id;
-        instanceStart = batchSize;
-    }
-
-    unsigned long long startingIndex = startValue + 1;
-
-    for (int i = 0; i < p; i++) {
+int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, int lock, vector<int> starting) {
+    for (int i = 0; i < localp; i++) {
         testCover[i] = 0;
     }
 
     int ans = 0;
 
-    if (startingThird < int((p + 1) / 2)) { //this is for below the half
-
-        for (unsigned long long lock = p + 1 - startingThird; lock < p; lock++) {
-            differenceCover[0] = 0;
-            differenceCover[1] = 1;
-            differenceCover[2] = startingThird;
-            for (int i = 3; i < dSize - 1; i++) {
-                differenceCover[i] = differenceCover[i - 1] + 1;
+    if (localThird < int((localp + 1) / 2)) { //this is for below the half
+        for (unsigned long long lock = localp + 1 - localThird; lock < localp; lock++) {
+            for (int i = 0; i < localdSize; i++) {
+                if (i < starting.size()) {
+                    differenceCover[i] = starting[i];
+                } else {
+                    differenceCover[i - 1] + 1;
+                }
             }
-            differenceCover[dSize - 1] = lock;
+            differenceCover[localdSize - 1] = lock; //the higher ups do the same thing so no need to worry about what comes after
 
-            if(differenceCover[dSize-2] >= differenceCover[dSize-1]){
+            if (differenceCover[localdSize - 2] >= differenceCover[localdSize - 1]) {
                 continue;
             }
 
+            if (localdSize - 2 > 1) {
+                starting.push_back(localThird);
+                recursiveLock(differenceCover, testCover, localp - 1, localdSize - 1, localThird + 1, lock - 1,
+                              starting);
+                cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
+                return -1;
+            }
+
             cout << endl;
-            cout << "this is the first for lock: " << lock << " for " << startingThird << " for p "<< p << endl;
+            cout << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
             for (int i = 0; i < dSize; i++) {
                 cout << differenceCover[i] << " ";
             }
@@ -354,14 +344,14 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
 
             if (isCover(differenceCover, testCover)) {
                 cout << "cover found" << endl;
-                quicksave(0, startingThird, differenceCover);
+                quicksave(0, localThird, differenceCover);
 
                 ofstream myfilea;
                 myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-                for (int a = 0; a < dSize - 1; a++) {
+                for (int a = 0; a < localdSize - 1; a++) {
                     myfilea << differenceCover[a] << " ";
                 }
-                myfilea << differenceCover[dSize - 1] << endl;
+                myfilea << differenceCover[localdSize - 1] << endl;
                 myfilea.close();
 
                 print(differenceCover, "testing.txt");
@@ -369,9 +359,9 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
                 //return 1;
             }
 
-            for (unsigned long long count = 0; choose(differenceCover, lock); count++) {
+            for (unsigned long long count = 0; choose(differenceCover, lock, localdSize, starting.size()); count++) {
                 cout << endl;
-                cout << "lock starting at " << lock << " for " << startingThird << " for p "<< p << endl;
+                cout << "lock starting at " << lock << " for " << localThird << " for localp " << localp << endl;
                 for (int i = 0; i < dSize; i++) {
                     cout << differenceCover[i] << " ";
                 }
@@ -380,14 +370,14 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
                 cout << "2" << endl;
                 if (isCover(differenceCover, testCover)) {
                     cout << "cover found" << endl;
-                    quicksave(count, startingThird, differenceCover);
+                    quicksave(count, localThird, differenceCover);
 
                     ofstream myfilea;
                     myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-                    for (int a = 0; a < dSize - 1; a++) {
+                    for (int a = 0; a < localdSize - 1; a++) {
                         myfilea << differenceCover[a] << " ";
                     }
-                    myfilea << differenceCover[dSize - 1] << endl;
+                    myfilea << differenceCover[localdSize - 1] << endl;
                     myfilea.close();
 
                     print(differenceCover, "testing.txt");
@@ -397,11 +387,11 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
             }
         }
     } else { //this is for half or above
+        unsigned long long startingIndex = 0;
+        unsigned long long startValue = 0;
         cout << "resetting" << endl;
-        vector<int> sc;
-        sc.push_back(0);
-        sc.push_back(1);
-        for (int i = startingThird; i < p; i++) {
+        vector<int> sc = starting;
+        for (int i = localThird; i < localp; i++) {
             sc.push_back(i);
             cout << "added " << sc.back() << endl;
         }
@@ -409,10 +399,10 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
         for (int i = 0; i < sc.size(); i++) {
             sc[i];
         }
-        cout << "1 " << startValue << " " << sc.size() << " " << dSize << endl;
+        cout << "1 " << startValue << " " << sc.size() << " " << localdSize << endl;
         vector<int> starter;
         cout << "the mem adress is " << &starter << endl;
-        starter = kthCombination(startValue, sc, dSize);
+        starter = kthCombination(startValue, sc, localdSize);
         cout << "2" << endl;
         for (int i = 0; i < starter.size(); i++) {
             differenceCover[i] = starter[i];
@@ -422,43 +412,43 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
         if (isCover(differenceCover, testCover)) {
             ofstream myfilea;
             myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-            for (int a = 0; a < dSize - 1; a++) {
+            for (int a = 0; a < localdSize - 1; a++) {
                 myfilea << differenceCover[a] << " ";
             }
-            myfilea << differenceCover[dSize - 1] << endl;
+            myfilea << differenceCover[localdSize - 1] << endl;
             myfilea.close();
 
             print(differenceCover, "testing.txt");
             //return 1;
         }
 
-        quicksave(startValue, startingThird, differenceCover);
+        quicksave(startValue, localThird, differenceCover);
 
         unsigned long long writeTime = 47000000;
 
         cout << "this is the starting cover" << endl;
-        for (int i = 0; i < dSize; i++) {
+        for (int i = 0; i < localdSize; i++) {
             cout << differenceCover[i] << " ";
         }
         cout << endl;
 
-        for (unsigned long long z = startingIndex; z < startValue + instanceStart && choose(differenceCover); z++) {
+        for (unsigned long long z = startingIndex; choose(differenceCover, localp, localdSize, starting.size()); z++) {
             cout << endl;
-            for (int i = 0; i < dSize; i++) {
+            for (int i = 0; i < localdSize; i++) {
                 cout << differenceCover[i] << " ";
             }
             cout << endl;
 
             if (isCover(differenceCover, testCover)) {
                 cout << "cover found" << endl;
-                quicksave(z, startingThird, differenceCover);
+                quicksave(z, localThird, differenceCover);
 
                 ofstream myfilea;
                 myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-                for (int a = 0; a < dSize - 1; a++) {
+                for (int a = 0; a < localdSize - 1; a++) {
                     myfilea << differenceCover[a] << " ";
                 }
-                myfilea << differenceCover[dSize - 1] << endl;
+                myfilea << differenceCover[localdSize - 1] << endl;
                 myfilea.close();
 
                 print(differenceCover, "testing.txt");
@@ -470,10 +460,10 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
 
                     ofstream myfilea;
                     myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-                    for (int a = 0; a < dSize - 1; a++) {
+                    for (int a = 0; a < localdSize - 1; a++) {
                         myfilea << differenceCover[a] << " ";
                     }
-                    myfilea << differenceCover[dSize - 1] << endl;
+                    myfilea << differenceCover[localdSize - 1] << endl;
                     myfilea.close();
 
                     print(differenceCover, "testing.txt");
@@ -481,12 +471,13 @@ int coverOfSize(int *differenceCover, int *testCover, int &startingThird) {
                     //return 1;
                 }
 
-                quicksave(z, startingThird, differenceCover);
+                quicksave(z, localThird, differenceCover);
             }
         }
     }
     return ans;
-} // end coverOfSize
+}
+
 
 int choose(int *pattern) {
     if (pattern[dSize - 1] < p - 1) {
@@ -507,8 +498,8 @@ int choose(int *pattern) {
         return 1;
     }
 } // end choose
-int choose(int *pattern, int localp) {
-    int localdSize = dSize - 1;
+int choose(int *pattern, int localp, int localdSize, int safe) {
+    localdSize -= 1;
     if (pattern[localdSize - 1] < localp - 1) {
         pattern[localdSize - 1]++;
         return 1;
@@ -516,7 +507,7 @@ int choose(int *pattern, int localp) {
         bool ret = 0;
 
         for (int a = 1; localdSize - a >= 0; a++) {
-            if (localdSize - a <= 2) {
+            if (localdSize - a <= safe) {
                 cout << "returning 0 on" << localdSize - a << endl;
                 ret = 1;
             }
@@ -532,7 +523,7 @@ int choose(int *pattern, int localp) {
             }
         }
 
-        if(ret) {
+        if (ret) {
             return 0;
         }
         return 1;
