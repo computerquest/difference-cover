@@ -277,7 +277,7 @@ void cover(string out) {
 	while (dSize <= max) {
 		for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
 			cout << "the new starting third is " << i << endl;
-			if (recursiveLock(differenceCover, testCover, p, dSize, i, starting)) {
+			if (recursiveLock(differenceCover, testCover, p, dSize-2, i, starting)) {
 				if (isCover(differenceCover, testCover)) {
 					ofstream myfilea;
 					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
@@ -333,7 +333,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 		for (unsigned long long lock = localp + 1 - localThird; lock < localp; lock++) {
             cout << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
-            for (int i = 0; i < localdSize; i++) {
+            for (int i = 0; i < localdSize+starting.size(); i++) { //the plus is to add the starting numbers
 				if (i < starting.size()) {
 					differenceCover[i] = starting[i];
 				}
@@ -345,17 +345,16 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				}
 			}
 
-			differenceCover[localdSize - 1] = lock; //the higher ups do the same thing so no need to worry about what comes after
+			differenceCover[starting.size()+localdSize-1] = lock; //the higher ups do the same thing so no need to worry about what comes after
 
 			if (differenceCover[localdSize - 2] >= differenceCover[localdSize - 1]) {
 				continue;
 			}
 
-			if (localdSize - 4 > 1) { //-2 for 0 and 1 -1 for the current third -1 for the lock				
+			if (localdSize-2 > 1) { //-1 for the current third -1 for the lock				
+				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
-				cout << "we are sending this down a level " << localdSize - 4 << endl;
-
-				recursiveLock(differenceCover, testCover, lock, localdSize - 2, (localp-1)-localdSize-2-1, starting);
+				recursiveLock(differenceCover, testCover, lock, localdSize - 2, localp-localdSize-2, starting);
 				cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
@@ -384,9 +383,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				//return 1;
 			}
 
-			for (unsigned long long count = 0; choose(differenceCover, lock, localdSize, starting.size()); count++) {
+			cout << "going to do the general checking now; starting: " << starting.size()-1 << " localdsize " << localdSize << endl;
+			for (unsigned long long count = 0; choose(differenceCover, lock, localdSize-2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
 				cout << endl;
-				cout << "lock starting at " << lock << " for " << localThird << " for localp " << localp << endl;
+				cout << "lock starting at " << lock << " for " << localThird << " for localp " << localp << " with localdsize " << localdSize << " with starting " << starting.size()-1 << endl;
 				for (int i = 0; i < dSize; i++) {
 					cout << differenceCover[i] << " ";
 				}
@@ -417,7 +417,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		unsigned long long startValue = 0;
 		
 		cout << "the starting size is " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
-		for (int i = 0; i < localdSize; i++) {
+		for (int i = 0; i < localdSize+starting.size(); i++) {
 			if (i < starting.size()) {
 				differenceCover[i] = starting[i];
 				cout << "1 " << i << " was set to " << differenceCover[i] << endl;
@@ -461,8 +461,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		}
 		cout << endl;
 
-		cout << "this is regular " << localp << " " << localdSize << endl;
-		for (unsigned long long z = startingIndex; choose(differenceCover, localp, localdSize+1, starting.size()); z++) {
+		cout << "this is regular " << localp << " " << localdSize-1 << " " << starting.size() << endl;
+		for (unsigned long long z = startingIndex; choose(differenceCover, localp, localdSize-1, starting.size()); z++) {
 			cout << endl;
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
@@ -531,7 +531,7 @@ int choose(int *pattern) {
 	}
 } // end choose
 int choose(int *pattern, int localp, int localdSize, int safe) {
-	localdSize -= 1;
+	localdSize += safe+1;
 
 	if (pattern[localdSize - 1] < localp - 1) {
 		pattern[localdSize - 1]++;
