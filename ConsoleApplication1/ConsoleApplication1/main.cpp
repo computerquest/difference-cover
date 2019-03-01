@@ -347,11 +347,31 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 			differenceCover[starting.size()+localdSize-1] = lock; //the higher ups do the same thing so no need to worry about what comes after
 
+			cout << endl;
+			for (int i = 0; i < dSize; i++) {
+				cout << differenceCover[i] << " ";
+			}
+			cout << endl;
+
 			if (differenceCover[localdSize - 2] >= differenceCover[localdSize - 1]) {
 				continue;
 			}
 
-			if (localdSize-2 > 1) { //-1 for the current third -1 for the lock				
+			bool perfectRef = true;
+			for (int i = 2; i < starting.size(); i++) {
+				cout << "i: " << i << " against " << dSize - 1 - (i - 2) << " value: " << differenceCover[i] << " vs " << differenceCover[dSize - 1 - (i - 2)] << " needed " << p + 1 - differenceCover[i] << endl;
+				if (p + 1 - differenceCover[i] != differenceCover[dSize - 1 - (i - 2)]) { //the minus two is for the position of 0 and 1
+					perfectRef = false;
+					break;
+				}
+			}
+
+			if (2 >= starting.size()) {
+				perfectRef = false;
+			}
+			
+			cout << "this cover is perfect | " << perfectRef << endl;
+			if (localdSize-2 > 1 && perfectRef) { //-1 for the current third -1 for the lock				
 				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
 
@@ -363,12 +383,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
 			}
-
-			cout << endl;
-			for (int i = 0; i < dSize; i++) {
-				cout << differenceCover[i] << " ";
-			}
-			cout << endl;
 
 			if (isCover(differenceCover, testCover)) {
 				cout << "cover found" << endl;
