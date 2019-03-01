@@ -354,7 +354,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			if (localdSize-2 > 1) { //-1 for the current third -1 for the lock				
 				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
-				recursiveLock(differenceCover, testCover, lock, localdSize - 2, localp-localdSize-2, starting);
+				recursiveLock(differenceCover, testCover, lock, localdSize - 2, lock-(localdSize-2), starting);
 				cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
@@ -445,14 +445,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			//return 1;
 		}
 
-		cout << "1" << endl;
-
-		for (int i = 0; i < dSize; i++) {
-			cout << "got through " << i << " with value " << differenceCover[i] << endl;
-		}
-		cout << "3" << endl;
 		quicksave(startValue, localThird, differenceCover);
-		cout << "2" << endl;
 		unsigned long long writeTime = 47000000;
 
 		cout << "this is the starting cover" << endl;
@@ -594,20 +587,13 @@ void quicksave(unsigned long long pos, int startingThird, int *differenceCover) 
 
 	ofstream myfile;
 	myfile.open((pFile + "_" + patch::stringMaker(id) + ".txt").c_str(), ios::trunc);
-	cout << "a" << endl;
 	for (int a = 0; a < dSize - 1; a++) {
 		myfile << differenceCover[a] << " ";
 	}
-	cout << "a" << endl;
 	myfile << differenceCover[dSize - 1] << endl;
-	cout << "a" << endl;
 	myfile << pos << endl;
-	cout << "a" << endl;
 	myfile << startingThird << endl;
-	cout << "a" << endl;
 	myfile.close();
-	cout << "a" << endl;
-
 }
 
 void print(const int *differenceCover, string file) {
