@@ -133,7 +133,7 @@ void quicksave(unsigned long long pos, int startingThird, int *differenceCover);
 
 inline int size(const int *cover, const int p);
 
-int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, int lock, vector<int> starting);
+int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting);
 
 int id; //the id of this process
 int ierr;
@@ -277,7 +277,7 @@ void cover(string out) {
 	while (dSize <= max) {
 		for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
 			cout << "the new starting third is " << i << endl;
-			if (recursiveLock(differenceCover, testCover, p, dSize, i, p - 1, starting)) {
+			if (recursiveLock(differenceCover, testCover, p, dSize, i, starting)) {
 				if (isCover(differenceCover, testCover)) {
 					ofstream myfilea;
 					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
@@ -309,8 +309,8 @@ void cover(string out) {
 	delete[] differenceCover;
 } // end cover
 
-int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, int lock, vector<int> starting) {
-	cout << "new step down " << localp << " dsize: " << localdSize << " localThird: " << localThird << " lock: " << lock << " dc: " <<  endl;
+int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting) {
+	cout << "new step down " << localp << " dsize: " << localdSize << " localThird: " << localThird << " dc: ";
 
 	for (int i = 0; i < dSize; i++) {
 		cout << " " << differenceCover[i];
@@ -330,8 +330,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 	if (localThird < int((p + 1) / 2)) { //this is for below the half
 		cout << "this is the below the half stuff" << endl;
+
 		for (unsigned long long lock = localp + 1 - localThird; lock < localp; lock++) {
-			for (int i = 0; i < localdSize; i++) {
+            cout << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
+            for (int i = 0; i < localdSize; i++) {
 				if (i < starting.size()) {
 					differenceCover[i] = starting[i];
 				}
@@ -353,14 +355,13 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				starting.push_back(localThird);
 				cout << "we are sending this down a level " << localdSize - 4 << endl;
 
-				recursiveLock(differenceCover, testCover, localp - 1, localdSize - 2, (localp-1)-localdSize-2, lock - 1, starting);
+				recursiveLock(differenceCover, testCover, lock, localdSize - 2, (localp-1)-localdSize-2-1, starting);
 				cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
 			}
 
 			cout << endl;
-			cout << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
 			}
@@ -416,7 +417,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		unsigned long long startValue = 0;
 		
 		cout << "the starting size is " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
-		for (int i = 0; i < localdSize-1; i++) {
+		for (int i = 0; i < localdSize; i++) {
 			if (i < starting.size()) {
 				differenceCover[i] = starting[i];
 				cout << "1 " << i << " was set to " << differenceCover[i] << endl;
@@ -429,10 +430,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				differenceCover[i] = differenceCover[i - 1] + 1;
 				cout << "3 " << i << " was set to " << differenceCover[i] << endl;
 			}
-
-			differenceCover[localdSize - 1] = lock;
-
-			cout << i << " was set to " << differenceCover[i] << endl;
 		}
 		cout << "finished the init" << endl;
 		if (isCover(differenceCover, testCover)) {
