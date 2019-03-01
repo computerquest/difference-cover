@@ -331,7 +331,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 	if (localThird < int((p + 1) / 2)) { //this is for below the half
 		cout << "this is the below the half stuff" << endl;
 
-		for (unsigned long long lock = localp + 1 - localThird; lock < localp; lock++) {
+		for (unsigned long long lock = p + 1 - localThird; lock < localp; lock++) {
             cout << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
             for (int i = 0; i < localdSize+starting.size(); i++) { //the plus is to add the starting numbers
 				if (i < starting.size()) {
@@ -354,7 +354,11 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			if (localdSize-2 > 1) { //-1 for the current third -1 for the lock				
 				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
-				recursiveLock(differenceCover, testCover, lock, localdSize - 2, lock-(localdSize-2), starting);
+
+				for(int i = lock-(localdSize-2); i > localThird; i--) {
+				    cout << "going through next recursion " << i << endl;
+                    recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting);
+                }
 				cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
@@ -384,9 +388,13 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			}
 
 			cout << "going to do the general checking now; starting: " << starting.size()-1 << " localdsize " << localdSize << endl;
+			if(localdSize-2 == 0) {
+			    continue;
+			}
+
 			for (unsigned long long count = 0; choose(differenceCover, lock, localdSize-2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
 				cout << endl;
-				cout << "lock starting at " << lock << " for " << localThird << " for localp " << localp << " with localdsize " << localdSize << " with starting " << starting.size()-1 << endl;
+				cout << "lock  at " << lock << " for " << localThird << " for localp " << localp << " with localdsize " << localdSize << " with starting " << starting.size()-1 << endl;
 				for (int i = 0; i < dSize; i++) {
 					cout << differenceCover[i] << " ";
 				}
@@ -412,26 +420,21 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		}
 	}
 	else { //this is for half or above
-		cout << "this is the regular above the half stuff" << endl;
 		unsigned long long startingIndex = 0;
 		unsigned long long startValue = 0;
 		
-		cout << "the starting size is " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
+		cout << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
 		for (int i = 0; i < localdSize+starting.size(); i++) {
 			if (i < starting.size()) {
 				differenceCover[i] = starting[i];
-				cout << "1 " << i << " was set to " << differenceCover[i] << endl;
 			}
 			else if (i == starting.size()) {
 				differenceCover[i] = localThird;
-				cout << "2 " << i << " was set to " << differenceCover[i] << endl;
 			}
 			else {
 				differenceCover[i] = differenceCover[i - 1] + 1;
-				cout << "3 " << i << " was set to " << differenceCover[i] << endl;
 			}
 		}
-		cout << "finished the init" << endl;
 		if (isCover(differenceCover, testCover)) {
 			ofstream myfilea;
 			myfilea.open((pFile + ".txt").c_str(), ios::trunc);
@@ -535,7 +538,7 @@ int choose(int *pattern, int localp, int localdSize, int safe) {
 
 		for (int a = 1; localdSize - a >= 0; a++) {
 			if (localdSize - a <= safe) {
-				cout << "returning 0 on" << localdSize - a << endl;
+				cout << "returning 0 on " << localdSize - a << " value: " << pattern[localdSize-a] << endl;
 				ret = 1;
 			}
 			pattern[localdSize - a]++;
@@ -580,7 +583,6 @@ int isCover(const int *differenceCover, int *testCover) {
 } // end isCover //set the p per method and add a cut off
 
 void quicksave(unsigned long long pos, int startingThird, int *differenceCover) {
-	cout << "quicksave has recieved " << pos << " " << startingThird << endl;
 	if (batchSize != 0) {
 		return;
 	}
