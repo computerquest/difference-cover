@@ -143,7 +143,7 @@ unsigned long long batchSize = 0;
 unsigned long long lastComb = 0;
 int p = -1;
 int dSize = -1;
-
+int checkCount = 0;
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
@@ -278,7 +278,7 @@ void cover(string out) {
 		for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
 			cout << "the new starting third is " << i << endl;
 			if (recursiveLock(differenceCover, testCover, p, dSize-2, i, starting)) {
-				if (isCover(differenceCover, testCover)) {
+				/*if (isCover(differenceCover, testCover)) {
 					ofstream myfilea;
 					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
 					for (int a = 0; a < dSize - 1; a++) {
@@ -288,7 +288,7 @@ void cover(string out) {
 					myfilea.close();
 
 					print(differenceCover, out);
-				}
+				}*/
 			}
 
 			MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
@@ -301,8 +301,19 @@ void cover(string out) {
 			dSize++;
 		}
 		else {
+			ofstream myfilea;
+			myfilea.open("cover_count.txt", ios::app);
+			myfilea << p << " " << dSize << " " << checkCount << " " << nChoosek(p-2, dSize-2) << " " << double(checkCount)/nChoosek(p-2, dSize-2) << endl;
+			myfilea.close();
+
+			cout << p << " " << dSize << " " << checkCount << " " << nChoosek(p-2, dSize-2) << " " << double(checkCount)/nChoosek(p-2, dSize-2) << endl;
+
+			checkCount = 0;
+
 			return;
 		}
+
+		checkCount = 0;
 	}
 
 	delete[] testCover;
@@ -580,6 +591,7 @@ int choose(int *pattern, int localp, int localdSize, int safe) {
 } // end choose
 
 int isCover(const int *differenceCover, int *testCover) {
+	checkCount++;
 	double *temp = (double *)testCover;
 	for (int x = 0; x < p / 2; x++)
 		temp[x] = 0;
