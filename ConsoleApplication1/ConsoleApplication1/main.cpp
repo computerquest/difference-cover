@@ -384,7 +384,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
 			}
-			else if (perfectRef && localThird < int(p / 2) + 1) {
+			else if (perfectRef && localThird < int(p / 2) + 1 && localdSize-2 == 1) {
 				cout << "setting it up for the one perfect" << endl;
 				differenceCover[starting.size() + 1] = int(p / 2)+1;
 			}
