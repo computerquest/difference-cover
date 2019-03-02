@@ -358,15 +358,16 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			}
 
 			bool perfectRef = true;
-			for (int i = 2; i < starting.size(); i++) {
+			cout << "starting that check with " << starting.size() << endl;
+			for (int i = 2; i <= starting.size(); i++) {
 				cout << "i: " << i << " against " << dSize - 1 - (i - 2) << " value: " << differenceCover[i] << " vs " << differenceCover[dSize - 1 - (i - 2)] << " needed " << p + 1 - differenceCover[i] << endl;
 				if (p + 1 - differenceCover[i] != differenceCover[dSize - 1 - (i - 2)]) { //the minus two is for the position of 0 and 1
 					perfectRef = false;
 					break;
 				}
-			}
+			} 
 
-			if (2 >= starting.size()) {
+			if (2 > starting.size()) {
 				perfectRef = false;
 			}
 			
@@ -382,6 +383,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				cout << "out of here bois" << localp << " " << localdSize << " " << localThird << endl;
 				starting.erase(starting.begin() + starting.size() - 1);
 				continue;
+			}
+			else if (perfectRef && localThird < int(p / 2) + 1) {
+				cout << "setting it up for the one perfect" << endl;
+				differenceCover[starting.size() + 1] = int(p / 2)+1;
 			}
 
 			if (isCover(differenceCover, testCover)) {
@@ -507,7 +512,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 					myfilea << differenceCover[localdSize - 1] << endl;
 					myfilea.close();
 
-					print(differenceCover, "testing.txt");
+					//print(differenceCover, "testing.txt");
 
 					//return 1;
 				}
