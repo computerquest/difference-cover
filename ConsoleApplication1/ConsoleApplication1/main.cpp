@@ -353,7 +353,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			}
 			cout << endl;
 
-			if (differenceCover[localdSize - 2] >= differenceCover[localdSize - 1]) {
+			if (differenceCover[starting.size()+localdSize - 2] >= differenceCover[starting.size()+localdSize-1]) {
 				continue;
 			}
 
