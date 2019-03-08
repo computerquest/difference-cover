@@ -144,6 +144,9 @@ unsigned long long lastComb = 0;
 int p = -1;
 int dSize = -1;
 int checkCount = 0;
+int groupNodes;
+int groupid;
+
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
@@ -188,6 +191,9 @@ int main(int argc, char *argv[]) {
 	if (id == 0) {
 		cout << "mpi has started with " << nn << " and a batch size of " << batchSize << endl;
 	}
+
+	groupNodes = nn;
+    groupid = id;
 
 	while (p < startValue + numberToCompute) {
 		pFile = patch::stringMaker(p);
@@ -274,9 +280,32 @@ void cover(string out) {
 	vector<int> starting;
 	starting.push_back(0);
 	starting.push_back(1);
+	unsigned long long totalCombo = nChoosek(p -2, dSize - 2)/2;
+	int unallocated = nn-1;
+
 	while (dSize <= max) {
 		for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
 			cout << "the new starting third is " << i << endl;
+			double percentTotal = -.1;
+
+			//the number of combos calculater are super bad but can be improved later
+			//this also needs to be updated to cover all the the possible i values; right now some percent total will be 0
+			if(i < int((p + 1) / 2)) {
+                percentTotal = nChoosek(p + 2 - (p + 1 - localThird) - 3, dSize - 3)/totalCombo;
+            } else {
+                percentTotal = nChoosek(p + 2 - startingThird - 3, dSize - 3)/totalCombo;
+            }
+
+			int numCores = percentTotal*(nn-1);
+
+			if (unallocated-numCores >= id) {
+                continue;
+			}
+
+			groupid = id-(unallocated-numCores);
+			groupNodes = numCores;
+			unallocated -= numCores;
+
 			if (recursiveLock(differenceCover, testCover, p, dSize-2, i, starting)) {
 				/*if (isCover(differenceCover, testCover)) {
 					ofstream myfilea;
@@ -387,6 +416,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
 
+				//still need to split this up
 				for(int i = lock-(localdSize-2); i > localThird; i--) {
 				    cout << "going through next recursion " << i << endl;
                     recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting);
@@ -450,11 +480,44 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		}
 	}
 	else { //this is for half or above
-		unsigned long long startingIndex = 0;
-		unsigned long long startValue = 0;
-		
-		cout << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
-		for (int i = 0; i < localdSize+starting.size(); i++) {
+        unsigned long long startValue = 0;
+        unsigned long long instanceStart = 0;
+
+        unsigned long long numCombo = nChoosek(p+2-startingThird-3, dSize - 3);
+        if (batchSize == 0 || groupNodes * batchSize + lastComb > numCombo) {
+            instanceStart = numCombo / groupNodes;
+            if (groupid < numCombo%groupNodes) {
+                instanceStart += 1;
+
+                if (groupid != 0) {
+                    startValue += groupid * instanceStart;
+                }
+            }
+            else {
+                startValue += numCombo % groupNodes + groupid * instanceStart;
+            }
+        }
+        else if (batchSize != 0) {
+            startValue = lastComb + batchSize * groupid;
+            instanceStart = batchSize;
+        }
+
+        unsigned long long startingIndex = startValue + 1;
+
+
+        cout << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
+
+        vector<int> localStart;
+        {
+            vector<int> sc;
+            for (int i = startingThird; i < p; i++) {
+                sc.push_back(i);
+            }
+
+            localStart = kthCombination(startValue, sc, dSize);
+        }
+
+        for (int i = 0; i < localdSize+starting.size(); i++) {
 			if (i < starting.size()) {
 				differenceCover[i] = starting[i];
 			}
@@ -462,9 +525,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				differenceCover[i] = localThird;
 			}
 			else {
-				differenceCover[i] = differenceCover[i - 1] + 1;
+				differenceCover[i] = localStart[i - (1+starting.size())];
 			}
 		}
+
 		if (isCover(differenceCover, testCover)) {
 			ofstream myfilea;
 			myfilea.open((pFile + ".txt").c_str(), ios::trunc);
@@ -488,7 +552,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		cout << endl;
 
 		cout << "this is regular " << localp << " " << localdSize-1 << " " << starting.size() << endl;
-		for (unsigned long long z = startingIndex; choose(differenceCover, localp, localdSize-1, starting.size()); z++) {
+		for (unsigned long long z = startingIndex; z < startValue+instanceStart && choose(differenceCover, localp, localdSize-1, starting.size()); z++) {
 			cout << endl;
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
