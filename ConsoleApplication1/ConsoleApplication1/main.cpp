@@ -82,7 +82,6 @@ nChoosek(unsigned long long n, unsigned long long k) {
 vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 	if (r == 0) {
 		vector<int> ans;
-		cout << "returning " << ans.size() << endl;
 		return ans;
 	}
 	else if (l.size() == r) {
@@ -100,8 +99,6 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 			ans.insert(ans.end(), secondary.begin(), secondary.end());
 
-			cout << "returning " << ans.size() << endl;
-
 			return ans;
 		}
 		else {
@@ -111,7 +108,6 @@ vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
 
 			vector<int> secondary = kthCombination(k - i, tertiary, r);
 
-			cout << "returning " << ans.size() << endl;
 			return secondary;
 		}
 	}
@@ -143,10 +139,11 @@ unsigned long long batchSize = 0;
 unsigned long long lastComb = 0;
 int p = -1;
 int dSize = -1;
-int checkCount = 0;
+unsigned long long checkCount = 0;
 int groupNodes;
 int groupid;
 
+unsigned long long totalCheck = 0;
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
@@ -198,10 +195,13 @@ int main(int argc, char *argv[]) {
 	while (p < startValue + numberToCompute) {
 		pFile = patch::stringMaker(p);
 
-		if (check()) {
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
+        if (check()) {
 			p++;
 			continue;
 		}
+
 		cout << "Thread: " << id << " on: " << p << endl;
 
 		cover(outFile);
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
 		p++;
 	}
 
-	cout << "Thread: " << id << " is finished" << endl;
+	cout << "Thread: " << id << " is finished. Checked: " << totalCheck << endl;
 
 	MPI_Finalize();
 
@@ -282,29 +282,31 @@ void cover(string out) {
 	starting.push_back(1);
 	unsigned long long totalCombo = nChoosek(p -2, dSize - 2)/2;
 	int unallocated = nn-1;
+    
+	int startingThird = 2;
+	int iters = 0;
+	
+    int numNum = int((p + 1) / 2) + 1-1; //-1 because we don't check 1
 
-	while (dSize <= max) {
-		for (int i = int((p + 1) / 2) + 1; i > 1; i--) {
-			cout << "the new starting third is " << i << endl;
-			double percentTotal = -.1;
+    if (batchSize == 0) { //eventually won't even need that
+        iters = numNum / groupNodes;
+        if (groupid < numNum%groupNodes) {
+            iters += 1;
 
-			//the number of combos calculater are super bad but can be improved later
-			//this also needs to be updated to cover all the the possible i values; right now some percent total will be 0
-			if(i < int((p + 1) / 2)) {
-                percentTotal = nChoosek(p + 2 - (p + 1 - localThird) - 3, dSize - 3)/totalCombo;
-            } else {
-                percentTotal = nChoosek(p + 2 - startingThird - 3, dSize - 3)/totalCombo;
+            if (groupid != 0) {
+                startingThird += groupid * iters;
             }
+        }
+        else {
+            startingThird += numNum % groupNodes + groupid * iters;
+        }
+    }
+    cout << "Thread: " << id << " outcome: " << startingThird << " " << iters << endl;
 
-			int numCores = percentTotal*(nn-1);
-
-			if (unallocated-numCores >= id) {
-                continue;
-			}
-
-			groupid = id-(unallocated-numCores);
-			groupNodes = numCores;
-			unallocated -= numCores;
+    while (dSize <= max) {
+        cout << "dSize went up //////////////////////////////" << endl;
+        for (int i = startingThird+iters-1; i >= startingThird; i--) {
+			cout << "Thread: " << id << " the new starting third is " << i << endl;
 
 			if (recursiveLock(differenceCover, testCover, p, dSize-2, i, starting)) {
 				/*if (isCover(differenceCover, testCover)) {
@@ -320,13 +322,18 @@ void cover(string out) {
 				}*/
 			}
 
-			MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+            cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
+
 
 			if (check() || batchSize != 0) {
 				//return;
 			}
 		}
-		if (!check()) {
+
+        cout << "Thread: " << id << " is waiting for the rest" << endl;
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
+        if (!check()) {
 			dSize++;
 		}
 		else {
@@ -336,6 +343,8 @@ void cover(string out) {
 			myfilea.close();
 
 			cout << p << " " << dSize << " " << checkCount << " " << nChoosek(p-2, dSize-2) << " " << double(checkCount)/nChoosek(p-2, dSize-2) << endl;
+
+			totalCheck += checkCount;
 
 			checkCount = 0;
 
@@ -430,6 +439,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				differenceCover[starting.size() + 1] = int(p / 2)+1;
 			}
 
+			//this can also be split like regular
+			
 			if (isCover(differenceCover, testCover)) {
 				cout << "cover found" << endl;
 				quicksave(0, localThird, differenceCover);
@@ -480,10 +491,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		}
 	}
 	else { //this is for half or above
-        unsigned long long startValue = 0;
+        /*unsigned long long startValue = 0;
         unsigned long long instanceStart = 0;
 
-        unsigned long long numCombo = nChoosek(p+2-startingThird-3, dSize - 3);
+        unsigned long long numCombo = nChoosek(p+2-localThird-3, dSize - 3);
         if (batchSize == 0 || groupNodes * batchSize + lastComb > numCombo) {
             instanceStart = numCombo / groupNodes;
             if (groupid < numCombo%groupNodes) {
@@ -510,7 +521,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         vector<int> localStart;
         {
             vector<int> sc;
-            for (int i = startingThird; i < p; i++) {
+            for (int i = localThird; i < p; i++) {
                 sc.push_back(i);
             }
 
@@ -527,7 +538,23 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			else {
 				differenceCover[i] = localStart[i - (1+starting.size())];
 			}
-		}
+		}*/
+
+        unsigned long long startingIndex = 0;
+        unsigned long long startValue = 0;
+
+        cout << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
+        for (int i = 0; i < localdSize+starting.size(); i++) {
+            if (i < starting.size()) {
+                differenceCover[i] = starting[i];
+            }
+            else if (i == starting.size()) {
+                differenceCover[i] = localThird;
+            }
+            else {
+                differenceCover[i] = differenceCover[i - 1] + 1;
+            }
+        }
 
 		if (isCover(differenceCover, testCover)) {
 			ofstream myfilea;
@@ -552,7 +579,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		cout << endl;
 
 		cout << "this is regular " << localp << " " << localdSize-1 << " " << starting.size() << endl;
-		for (unsigned long long z = startingIndex; z < startValue+instanceStart && choose(differenceCover, localp, localdSize-1, starting.size()); z++) {
+		for (unsigned long long z = startingIndex; choose(differenceCover, localp, localdSize-1, starting.size()); z++) { //z < startValue+instanceStart &&
 			cout << endl;
 			for (int i = 0; i < dSize; i++) {
 				cout << differenceCover[i] << " ";
@@ -596,6 +623,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			}
 		}
 	}
+
 	return ans;
 }
 
@@ -632,7 +660,6 @@ int choose(int *pattern, int localp, int localdSize, int safe) {
 
 		for (int a = 1; localdSize - a >= 0; a++) {
 			if (localdSize - a <= safe) {
-				cout << "returning 0 on " << localdSize - a << " value: " << pattern[localdSize-a] << endl;
 				ret = 1;
 			}
 			pattern[localdSize - a]++;
