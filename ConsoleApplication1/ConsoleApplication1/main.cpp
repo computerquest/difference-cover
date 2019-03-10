@@ -289,21 +289,31 @@ void cover(string out) {
     int numNum = int((p + 1) / 2) + 1-1; //-1 because we don't check 1
 
     if (batchSize == 0) { //eventually won't even need that
+        groupNodes = 1;
+
         if(id >= numNum) {
-            groupNodes++;
             groupid = id%numNum;
         }
 
         iters = numNum / nn;
 
-        iters += 1;
+        if(groupid < nn-numNum) {
+            groupNodes += nn/numNum;
+        }
 
-        if (groupid != 0) {
-            startingThird += id * iters;
+        if (groupid < numNum%nn) {
+            iters += 1;
+
+            if (groupid != 0) {
+                startingThird += groupid * iters;
+            }
+        }
+        else {
+            startingThird += numNum % nn + groupid * iters;
         }
     }
 
-    cout << "Thread: " << id << " outcome: " << startingThird << " " << iters << " " <<  (groupid%numNum) << endl;
+    cout << "Thread: " << id << " outcome: " << startingThird << " " << iters << " " <<  groupid <<  " " << groupNodes << endl;
 
     MPI_Barrier(MPI_COMM_WORLD); //TODO: remove
 
@@ -428,8 +438,40 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			if (localdSize-2 > 1 && perfectRef) { //-1 for the current third -1 for the lock				
 				cout << "we are sending this down a level " << localdSize - 2 << endl;
 				starting.push_back(localThird);
+                
+				int preGroup = groupNodes;
+				int preId = groupid;
+				int numNum = lock-(localdSize-2)-localThird;
+				int startingLock = localThird+1;
 
-				//still need to split this up
+                if (batchSize == 0) { //eventually won't even need that
+                    groupNodes = 1;
+
+                    if(id >= numNum) {
+                        groupid = groupid%numNum;
+                    }
+
+                    iters = numNum / preGroup;
+
+                    if(groupid < preGroup-numNum) {
+                        groupNodes += preGroup/numNum;
+                    }
+
+                    if (groupid < numNum%preGroup) {
+                        iters += 1;
+
+                        if (groupid != 0) {
+                            startingLock += groupid * iters;
+                        }
+                    }
+                    else {
+                        startingLock += numNum % preGroup + groupid * iters;
+                    }
+                }
+
+                cout << "Thread: " << id << " was " << preId << " " << preGroup << " outcome: " << startingLock << " " << iters << " " <<  groupid <<  " " << groupNodes << endl;
+
+                //still need to split this up
 				for(int i = lock-(localdSize-2); i > localThird; i--) {
 				    cout << "going through next recursion " << i << endl;
                     recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting);
