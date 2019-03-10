@@ -289,19 +289,23 @@ void cover(string out) {
     int numNum = int((p + 1) / 2) + 1-1; //-1 because we don't check 1
 
     if (batchSize == 0) { //eventually won't even need that
-        iters = numNum / groupNodes;
-        if (groupid < numNum%groupNodes) {
-            iters += 1;
-
-            if (groupid != 0) {
-                startingThird += groupid * iters;
-            }
+        if(id >= numNum) {
+            groupNodes++;
+            groupid = id%numNum;
         }
-        else {
-            startingThird += numNum % groupNodes + groupid * iters;
+
+        iters = numNum / nn;
+
+        iters += 1;
+
+        if (groupid != 0) {
+            startingThird += id * iters;
         }
     }
-    cout << "Thread: " << id << " outcome: " << startingThird << " " << iters << endl;
+
+    cout << "Thread: " << id << " outcome: " << startingThird << " " << iters << " " <<  (groupid%numNum) << endl;
+
+    MPI_Barrier(MPI_COMM_WORLD); //TODO: remove
 
     while (dSize <= max) {
         cout << "dSize went up //////////////////////////////" << endl;
