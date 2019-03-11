@@ -298,7 +298,7 @@ void cover(string out) {
 		iters = numNum / nn;
 
 		if (groupid < nn - numNum) {
-			groupNodes += nn / numNum;
+			groupNodes = nn / numNum;//+= nn / numNum;
 		}
 
 		if (groupid < numNum%nn) {
@@ -444,6 +444,28 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				perfectRef = false;
 			}
 
+			//cout << "going to do the general checking now; starting: " << starting.size()-1 << " localdsize " << localdSize << endl;
+			if (localdSize - 2 == 0) {
+				if (isCover(differenceCover, testCover)) {
+					//cout << "cover found" << endl;
+					quicksave(0, localThird, differenceCover);
+
+					ofstream myfilea;
+					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+					for (int a = 0; a < localdSize - 1; a++) {
+						myfilea << differenceCover[a] << " ";
+					}
+					myfilea << differenceCover[localdSize - 1] << endl;
+					myfilea.close();
+
+					print(differenceCover, "testing.txt");
+
+					//return 1;
+				}
+
+				continue;
+			}
+
 			//cout << "this cover is perfect | " << perfectRef << endl;
 			if (localdSize - 2 > 1 && perfectRef) { //-1 for the current third -1 for the lock				
 				cout << "Thread: " << groupid << " " << id << " " << groupNodes << " we are sending this down a level " << localdSize - 2 << endl;
@@ -511,7 +533,74 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				differenceCover[starting.size() + 1] = int(p / 2) + 1;
 			}
 
-			//this can also be split like regular
+			int preGroup = groupNodes;
+			int preId = groupid;
+			unsigned long long numNum = nChoosek(lock - localThird-1, localdSize-2);
+			unsigned long long startValue = 0;
+			unsigned long long instanceStart = 0;
+
+			cout << "Thread: " << groupid << " " << id << " " << groupNodes << "starting info: " << localp << " " << localdSize << " " << localThird << " " << numNum << endl;
+			if (batchSize == 0) { //eventually won't even need that
+				groupNodes = 1;
+
+				if (groupid >= numNum) {
+					cout << "id reassignment time " << groupid << " " << numNum << " going for " << groupid % numNum << endl;
+					groupid = groupid % numNum;
+				}
+
+				instanceStart = numNum / preGroup;
+
+				if (groupid < preGroup - numNum) {
+					groupNodes += preGroup / numNum;
+				}
+
+				if (groupid < numNum%preGroup) {
+					instanceStart += 1;
+
+					if (groupid != 0) {
+						startValue += groupid * instanceStart;
+					}
+				}
+				else {
+					startValue += numNum % preGroup + groupid * instanceStart;
+				}
+
+				if (groupNodes == 1) {
+					groupid = 0;
+				}
+				else {
+					groupid = preId / numNum;
+				}
+			}
+
+			cout << "!Thread: " << id << " was " << preId << " " << preGroup << " for " << localThird << " outcome: " << startValue << " " << instanceStart << " " << groupid << " " << groupNodes << endl;
+
+			vector<int> localStart;
+			{
+				vector<int> sc;
+				for (int i = localThird+1; i < lock; i++) {
+					sc.push_back(i);
+				}
+
+				localStart = kthCombination(startValue, sc, dSize);
+			}
+
+
+			for (int i = 0; i < localdSize + starting.size(); i++) {
+				if (i < starting.size()) {
+					differenceCover[i] = starting[i];
+				}
+				else if (i == starting.size()) {
+					differenceCover[i] = localThird;
+				}
+				else {
+					differenceCover[i] = localStart[i - (1 + starting.size())];
+				}
+			}
+
+			differenceCover[localdSize + starting.size() - 1] = lock;
+
+			unsigned long long startingIndex = startValue + 1;
 
 			if (isCover(differenceCover, testCover)) {
 				//cout << "cover found" << endl;
@@ -560,6 +649,9 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 					//return 1;
 				}
 			}
+
+			groupid = preId;
+			groupNodes = preGroup;
 		}
 	}
 	else { //this is for half or above
