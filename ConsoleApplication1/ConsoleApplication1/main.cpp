@@ -563,11 +563,11 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		}
 	}
 	else { //this is for half or above
-		cout << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
+		cout << "Thread: " << groupid << " " << id << " " << groupNodes << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
 
 		int preGroup = groupNodes;
 		int preId = groupid;
-		unsigned long long numNum = nChoosek(localp - localThird, localdSize);
+		unsigned long long numNum = nChoosek(localp - localThird-1, localdSize-1);
 		unsigned long long startValue = 0;
 		unsigned long long instanceStart = 0;
 
@@ -637,11 +637,11 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 		vector<int> localStart;
 		{
 			vector<int> sc;
-			for (int i = localThird; i < p; i++) {
+			for (int i = localThird+1; i < localp; i++) {
 				sc.push_back(i);
 			}
 
-			localStart = kthCombination(startValue, sc, dSize);
+			localStart = kthCombination(startValue, sc, localdSize-1);
 		}
 
 		for (int i = 0; i < localdSize + starting.size(); i++) {
@@ -652,10 +652,15 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				differenceCover[i] = localThird;
 			}
 			else {
+			    cout << "#Thread: " << groupid << " " << id << " " << groupNodes << " addng local start " <<  localStart[i - (1 + starting.size())] << endl;
 				differenceCover[i] = localStart[i - (1 + starting.size())];
 			}
 		}
 
+		cout << "@Thread: " << id;
+		for(int i = 0; i < dSize; i++) {
+		    cout << " " << differenceCover[i];
+		}
 		unsigned long long startingIndex = startValue + 1;
 
 		/*for (int i = 0; i < localdSize + starting.size(); i++) {
