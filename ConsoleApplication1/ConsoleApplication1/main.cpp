@@ -370,6 +370,9 @@ void cover(string out) {
             delete[] testCover;
             delete[] differenceCover;
 
+			groupid = id;
+			groupNodes = nn;
+
             return;
         }
 
