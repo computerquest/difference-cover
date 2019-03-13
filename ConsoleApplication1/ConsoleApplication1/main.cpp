@@ -319,7 +319,7 @@ void cover(string out) {
         }
     }
 
-    cout << "##Thread: " << id << " outcome: " << startingThird << " " << iters << " " << groupid << " " << groupNodes << endl;
+    cout << "@@Thread: " << id << " outcome: " << startingThird << " " << iters << " " << groupid << " " << groupNodes << endl;
 
     MPI_Barrier(MPI_COMM_WORLD); //TODO: remove
 
@@ -409,7 +409,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         int numGlobalNum = localp-startingGlobalLock;
 
         cout << "@Thread: " << id << " was " << preGlobalId << " " << preGlobalGroup << " for " << localThird << " " << localp << " " << localdSize << " " << numGlobalNum << " outcome: " << startingGlobalLock << " " << globalIters << " " << groupid << " " << groupNodes
-             << endl;
+        << endl;
         if (batchSize == 0) { //eventually won't even need that
             groupNodes = int(groupNodes/numGlobalNum);
 
@@ -440,11 +440,11 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             if (groupNodes == 1) {
                 groupid = 0;
             } else {
-                groupid = preGlobalId / ( p + 1 - localThird);
+                groupid = preGlobalId / (numGlobalNum);
             }
         }
 
-        cout << "!Thread: " << id << " was " << preGlobalId << " " << preGlobalGroup << " for " << localThird << " " << localp << " " << localdSize << " " << numGlobalNum << " outcome: " << startingGlobalLock << " " << globalIters << " " << groupid << " " << groupNodes
+        cout << "##Thread: " << id << " was " << preGlobalId << " " << preGlobalGroup << " for " << localThird << " " << localp << " " << localdSize << " " << numGlobalNum << " outcome: " << startingGlobalLock << " " << globalIters << " " << groupid << " " << groupNodes
             << endl;
 
         for (unsigned long long lock = startingGlobalLock; lock < startingGlobalLock+globalIters; lock++) {
@@ -554,7 +554,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                     if (groupNodes == 1) {
                         groupid = 0;
                     } else {
-                        groupid = preId / (lock - (localdSize - 2) - localThird);
+                        groupid = preId / (numNum);
                     }
                 }
 
@@ -596,7 +596,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             unsigned long long startValue = 0;
             unsigned long long instanceStart = 0;
 
-            cout << "Thread: " << groupid << " " << id << " " << groupNodes << "starting info: " << localp << " " << localdSize << " " << localThird << " " << numNum << endl;
+            cout << "Thread: " << groupid << " " << id << " " << groupNodes << "starting info: " << sc.size() << " " << localp << " " << localdSize << " " << localThird << " " << numNum << " " << lock << endl;
             if (batchSize == 0) { //eventually won't even need that
                 groupNodes = int(groupNodes/numNum);
 
@@ -632,8 +632,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 }
             }
 
-            //cout << "!Thread: " << id << " was " << preId << " " << preGroup << " for " << localThird << " " << localp << " " << localdSize << " " << lock << " outcome: " << startValue << " " << instanceStart << " " << groupid << " " << groupNodes
-            //     << endl;
+            cout << "!Thread: " << id << " was " << preId << " " << preGroup << " for " << localThird << " " << localp << " " << localdSize << " " << lock << " outcome: " << startValue << " " << instanceStart << " " << groupid << " " << groupNodes << endl;
 
             vector<int> localStart;
             {
