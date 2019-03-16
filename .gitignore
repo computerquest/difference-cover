@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 /ConsoleApplication1/ConsoleApplication1/blah
+
+cmake-build-debug/CMakeFiles/
