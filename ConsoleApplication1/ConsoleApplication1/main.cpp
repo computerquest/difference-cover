@@ -263,7 +263,7 @@ void cover(string out) {
     int startingThird = int((p + 1) / 2) + 1;
     struct stat buffer;
     if (stat((pFile + "_0.txt").c_str(), &buffer) == 0) {
-        ifstream infile((pFile + "_" + patch::stringMaker(id) + ".txt").c_str());
+        ifstream infile((pFile + "_0.txt").c_str());
         string line;
         getline(infile, line);
 
