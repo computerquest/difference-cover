@@ -105,7 +105,7 @@ int dSize = -1;
 unsigned long long checkCount = 0;
 int groupNodes;
 int groupid;
-
+string combinedOut = "testing.txt";
 unsigned long long totalCheck = 0;
 
 void calcBounds(unsigned long long numNum, unsigned long long& iters, unsigned long long& starting) {
@@ -147,6 +147,23 @@ void calcBounds(unsigned long long numNum, unsigned long long& iters, unsigned l
 		groupid = preId / numNum;
 	}
 }
+bool checkWrite(int *differenceCover, int *testCover) {
+	if (isCover(differenceCover, testCover)) {
+		ofstream myfilea;
+		myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+		for (int a = 0; a < dSize - 1; a++) {
+			myfilea << differenceCover[a] << " ";
+		}
+		myfilea << differenceCover[dSize - 1] << endl;
+		myfilea.close();
+
+		print(differenceCover, combinedOut);
+
+		return true;
+	} 
+
+	return false;
+}
 
 /*COMMANDS TO RUN/COMPILE
  * COMPILE: mpicxx \-o main main.cpp
@@ -184,6 +201,7 @@ int main(int argc, char *argv[]) {
 		numberToCompute = atoi(argv[3]);
 
 	string outFile = argv[1];
+	combinedOut = outFile;
 
 	groupNodes = nn;
 	groupid = id;
@@ -247,16 +265,8 @@ void cover(string out) {
 			cout << "Thread: " << id << " the new starting third is " << i << endl;
 
 			if (recursiveLock(differenceCover, testCover, p, dSize - 2, i, starting)) {
-				/*if (isCover(differenceCover, testCover)) {
-					ofstream myfilea;
-					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-					for (int a = 0; a < dSize - 1; a++) {
-						myfilea << differenceCover[a] << " ";
-					}
-					myfilea << differenceCover[dSize - 1] << endl;
-					myfilea.close();
-
-					print(differenceCover, out);
+				/*if (checkWrite(differenceCover, testCover)) {
+					
 				}*/
 			}
 
@@ -369,21 +379,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 			//cout << "going to do the general checking now; starting: " << starting.size()-1 << " localdsize " << localdSize << endl;
 			if (localdSize - 2 == 0) {
-				if (isCover(differenceCover, testCover)) {
-					//cout << "cover found" << endl;
-					quicksave(0, localThird, differenceCover);
-
-					ofstream myfilea;
-					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-					for (int a = 0; a < localdSize - 1; a++) {
-						myfilea << differenceCover[a] << " ";
-					}
-					myfilea << differenceCover[localdSize - 1] << endl;
-					myfilea.close();
-
-					print(differenceCover, "testing.txt");
-
-					//return 1;
+				if (checkWrite(differenceCover, testCover)) {
+					//return 1
 				}
 
 				continue;
@@ -472,21 +469,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 			unsigned long long startingIndex = startValue + 1;
 
-			if (isCover(differenceCover, testCover)) {
-				//cout << "cover found" << endl;
-				quicksave(0, localThird, differenceCover);
-
-				ofstream myfilea;
-				myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-				for (int a = 0; a < localdSize - 1; a++) {
-					myfilea << differenceCover[a] << " ";
-				}
-				myfilea << differenceCover[localdSize - 1] << endl;
-				myfilea.close();
-
-				print(differenceCover, "testing.txt");
-
-				//return 1;
+			if (checkWrite(differenceCover, testCover)) {
+				//return 1
 			}
 
 			for (unsigned long long count = startingIndex; count < startValue + instanceStart && choose(differenceCover, lock, localdSize - 2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
@@ -497,21 +481,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				}
 				cout << endl;*/
 
-				if (isCover(differenceCover, testCover)) {
-					//cout << "cover found" << endl;
-					quicksave(count, localThird, differenceCover);
-
-					ofstream myfilea;
-					myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-					for (int a = 0; a < localdSize - 1; a++) {
-						myfilea << differenceCover[a] << " ";
-					}
-					myfilea << differenceCover[localdSize - 1] << endl;
-					myfilea.close();
-
-					print(differenceCover, "testing.txt");
-
-					//return 1;
+				if (checkWrite(differenceCover, testCover)) {
+					//return 1
 				}
 			}
 
@@ -556,21 +527,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
 		unsigned long long startingIndex = startValue + 1;
 
-		if (isCover(differenceCover, testCover)) {
-			ofstream myfilea;
-			myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-			for (int a = 0; a < localdSize - 1; a++) {
-				myfilea << differenceCover[a] << " ";
-			}
-			myfilea << differenceCover[localdSize - 1] << endl;
-			myfilea.close();
-
-			print(differenceCover, "testing.txt");
-
-			groupid = preId;
-			groupNodes = preGroup;
-
-			//return 1;
+		if (checkWrite(differenceCover, testCover)) {
+			//return 1
 		}
 
 		quicksave(startValue, localThird, differenceCover);
@@ -590,24 +548,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			}
 			cout << endl;*/
 
-			if (isCover(differenceCover, testCover)) {
-				//cout << "cover found" << endl;
-				quicksave(z, localThird, differenceCover);
-
-				ofstream myfilea;
-				myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-				for (int a = 0; a < localdSize - 1; a++) {
-					myfilea << differenceCover[a] << " ";
-				}
-				myfilea << differenceCover[localdSize - 1] << endl;
-				myfilea.close();
-
-				print(differenceCover, "testing.txt");
-
-				groupid = preId;
-				groupNodes = preGroup;
-
-				//return 1;
+			if (checkWrite(differenceCover, testCover)) {
+				//return 1
 			}
 			else if (z % writeTime == 0) {
 				if (check()) {
