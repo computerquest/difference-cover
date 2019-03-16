@@ -292,52 +292,29 @@ void cover(string out) {
             groupNodes = nn;
             cout << "Thread: " << id << " the new starting third is " << i << endl;
 
-            if (recursiveLock(differenceCover, testCover, p, dSize - 2, i, starting)) {
-                /*if (checkWrite(differenceCover, testCover)) {
-
-                }*/
-            }
+            recursiveLock(differenceCover, testCover, p, dSize - 2, i, starting);
 
             cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
-
-
-            if (check()) {
-                //return;
-            }
-
 
             ofstream myfile;
             myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
             myfile << dSize << endl;
             myfile << i << endl;
             myfile.close();
+
+            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+            if (check()) {
+                groupid = id;
+                groupNodes = nn;
+
+                delete[] testCover;
+                delete[] differenceCover;
+
+                return;
+            }
         }
 
         cout << "Thread: " << id << " is waiting for the rest" << endl;
-        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
-
-        if (!check()) {
-            dSize++;
-        } else {
-            ofstream myfilea;
-            myfilea.open("cover_count.txt", ios::app);
-            myfilea << p << " " << dSize << " " << checkCount << " " << nChoosek(p - 2, dSize - 2) << " " << double(checkCount) / nChoosek(p - 2, dSize - 2) << endl;
-            myfilea.close();
-
-            cout << p << " " << dSize << " " << checkCount << " " << nChoosek(p - 2, dSize - 2) << " " << double(checkCount) / nChoosek(p - 2, dSize - 2) << endl;
-
-            totalCheck += checkCount;
-
-            checkCount = 0;
-
-            delete[] testCover;
-            delete[] differenceCover;
-
-            groupid = id;
-            groupNodes = nn;
-
-            return;
-        }
 
         checkCount = 0;
     }
@@ -347,18 +324,7 @@ void cover(string out) {
 } // end cover
 
 int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting) {
-    //cout << "Thread: " << groupid << " " << id << " " << groupNodes << " new step down " << localp << " dsize: " << localdSize << " localThird: " << localThird << " dc: ";
-
-    /*for (int i = 0; i < dSize; i++) {
-        cout << " " << differenceCover[i];
-    }
-
-    cout << " | starting ";
-    for (int i = 0; i < starting.size(); i++) {
-        cout << " " << starting[i];
-    }
-    cout << endl;*/
-
+    //is this needed????
     for (int i = 0; i < localp; i++) {
         testCover[i] = 0;
     }
@@ -366,8 +332,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
     int ans = 0;
 
     if (localThird < int((p + 1) / 2)) { //this is for below the half
-        // cout << "Thread: " << groupid << " " << id << " " << groupNodes << "this is the below the half stuff" << endl;
-
         int preGlobalGroup = groupNodes;
         int preGlobalId = groupid;
         unsigned long long startingGlobalLock = p + 1 - localThird;
@@ -378,7 +342,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         unsigned long long globalUpperBound = startingGlobalLock + globalIters;
 
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++) {
-            //cout << "Thread: " << groupid << " " << id << " " << groupNodes << "this is the first for lock: " << lock << " for " << localThird << " for localp " << localp << endl;
             for (int i = 0; i < localdSize + starting.size(); i++) { //the plus is to add the starting numbers
                 if (i < starting.size()) {
                     differenceCover[i] = starting[i];
@@ -391,14 +354,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
             differenceCover[starting.size() + localdSize - 1] = lock; //the higher ups do the same thing so no need to worry about what comes after
 
-            //cout << "Thread: " << groupid << " " << id << " " << groupNodes << endl;
-            /* for (int i = 0; i < dSize; i++) {
-                 cout << differenceCover[i] << " ";
-             }
-             cout << endl;*/
-
             bool perfectRef = true;
-            //cout << "starting that check with " << starting.size() << endl;
+
             for (int i = 2; i <= starting.size(); i++) {
                 if (p + 1 - differenceCover[i] != differenceCover[dSize + 1 - i]) {
                     perfectRef = false;
@@ -410,18 +367,18 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 perfectRef = false;
             }
 
-            //cout << "going to do the general checking now; starting: " << starting.size()-1 << " localdsize " << localdSize << endl;
             if (localdSize - 2 == 0) {
                 if (checkWrite(differenceCover, testCover)) {
-                    //return 1
+                    groupid = preGlobalId;
+                    groupNodes = preGlobalGroup;
+
+                    return 1;
                 }
 
                 continue;
             }
 
-            //cout << "this cover is perfect | " << perfectRef << endl;
-            if (localdSize - 2 > 1 && perfectRef) { //-1 for the current third -1 for the lock
-                //cout << "Thread: " << groupid << " " << id << " " << groupNodes << " we are sending this down a level " << localdSize - 2 << endl;
+            if (localdSize - 2 > 1 && perfectRef) {
                 starting.push_back(localThird);
 
                 int preGroup = groupNodes;
@@ -431,27 +388,22 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 unsigned long long iters = 0;
 
                 if (numNum == 0) {
-                    //cout << "Thread: " << groupid << " " << id << " " << groupNodes << "for whatever reason we are hitting that 0 ting" << endl;
                     starting.erase(starting.begin() + starting.size() - 1);
                     continue;
                 }
 
                 calcBounds(numNum, iters, startingLock);
 
-                //still need to split this up
                 for (int i = startingLock + iters; i >= startingLock; i--) {
-                    //cout << "Thread: " << id << "going through next recursion " << i << endl;
                     recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting);
                 }
 
                 groupid = preId;
                 groupNodes = preGroup;
 
-                //cout << "out of here bois " << localp << " " << localdSize << " " << localThird << endl;
                 starting.erase(starting.begin() + starting.size() - 1);
                 continue;
             } else if (perfectRef && localThird < int(p / 2) + 1 && localdSize - 2 == 1) {
-                //cout << "Thread: " << groupid << " " << id << " " << groupNodes << "setting it up for the one perfect" << endl;
                 differenceCover[starting.size() + 1] = int(p / 2) + 1;
             }
 
@@ -493,27 +445,21 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
             differenceCover[localdSize + starting.size() - 1] = lock;
 
-            //cout << "@Thread: " << id << " was " << preId << " " << preGroup << " for " << localThird << " " << localp << " " << localdSize << " " << lock << "starting:";
-            /*for (int i = 0; i < dSize; i++) {
-                cout << " " << differenceCover[i];
-            }*/
-
             unsigned long long startingIndex = startValue + 1;
 
             if (checkWrite(differenceCover, testCover)) {
-                //return 1
+                groupid = preId;
+                groupNodes = preGroup;
+
+                return 1;
             }
 
             for (unsigned long long count = startingIndex; count < upperBound && choose(differenceCover, lock, localdSize - 2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
-                /*cout << endl;
-                cout << "Thread: " << groupid << " " << id << " " << groupNodes << " lock  at " << lock << " for " << localThird << " for localp " << localp << " with localdsize " << localdSize << " with starting " << starting.size() - 1 << endl;
-                for (int i = 0; i < dSize; i++) {
-                    cout << differenceCover[i] << " ";
-                }
-                cout << endl;*/
-
                 if (checkWrite(differenceCover, testCover)) {
-                    //return 1
+                    groupid = preId;
+                    groupNodes = preGroup;
+
+                    return 1;
                 }
             }
 
@@ -521,8 +467,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             groupNodes = preGroup;
         }
     } else { //this is for half or above
-        //cout << "Thread: " << groupid << " " << id << " " << groupNodes << "regular above half " << starting.size() << " localdsize " << localdSize << " dsize is " << dSize << " the third is " << localThird << endl;
-
         int preGroup = groupNodes;
         int preId = groupid;
         unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize - 1);
@@ -557,47 +501,25 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         unsigned long long startingIndex = startValue + 1;
 
         if (checkWrite(differenceCover, testCover)) {
-            //return 1
+            groupNodes = preGroup;
+            groupid = preId;
+
+            return 1;
         }
 
         unsigned long long writeTime = 47000000;
 
-        /*cout << "this is the starting cover" << endl;
-        for (int i = 0; i < dSize; i++) {
-            cout << differenceCover[i] << " ";
-        }
-        cout << endl;*/
-
-        //cout << "this is regular " << localp << " " << localdSize-1 << " " << starting.size() << endl;
-        for (unsigned long long z = startingIndex; z < upperBound && choose(differenceCover, localp, localdSize - 1, starting.size()); z++) { //z < startValue+instanceStart &&
-            /*cout << endl;
-            for (int i = 0; i < dSize; i++) {
-                cout << differenceCover[i] << " ";
-            }
-            cout << endl;*/
-
+        for (unsigned long long z = startingIndex; z < upperBound && choose(differenceCover, localp, localdSize - 1, starting.size()); z++) {
             if (checkWrite(differenceCover, testCover)) {
-                //return 1
-            } else if (z % writeTime == 0) {
-                if (check()) {
-                    //cout << "someone else found the cover" << endl;
+                groupid = preId;
+                groupNodes = preGroup;
 
-                    ofstream myfilea;
-                    myfilea.open((pFile + ".txt").c_str(), ios::trunc);
-                    for (int a = 0; a < localdSize - 1; a++) {
-                        myfilea << differenceCover[a] << " ";
-                    }
-                    myfilea << differenceCover[localdSize - 1] << endl;
-                    myfilea.close();
+                return 1;
+            } else if (z % writeTime == 0 && check()) {
+                groupid = preId;
+                groupNodes = preGroup;
 
-                    //print(differenceCover, "testing.txt");
-
-                    groupid = preId;
-                    groupNodes = preGroup;
-
-                    //return 1;
-                }
-
+                return 1;
             }
         }
 
