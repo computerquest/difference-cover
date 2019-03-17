@@ -282,7 +282,7 @@ void cover(string out) {
             lineaStream >> startingThird;
         }
 
-        cout << dSize << " " << startingThird << endl;
+        cout << "Reading dSize: " << dSize << " startingThird: " << startingThird << endl;
     }
 
     while (dSize <= max) {
@@ -296,13 +296,16 @@ void cover(string out) {
 
             cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
 
+
+
+            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
             ofstream myfile;
             myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
             myfile << dSize << endl;
             myfile << i << endl;
             myfile.close();
 
-            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
             if (check()) {
                 groupid = id;
                 groupNodes = nn;
@@ -454,6 +457,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 return 1;
             }
 
+            cout << "Choose: " << lock << " " << localdSize-2 << " " << starting.size() << endl;
             for (unsigned long long count = startingIndex; count < upperBound && choose(differenceCover, lock, localdSize - 2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
                 if (checkWrite(differenceCover, testCover)) {
                     groupid = preId;
@@ -508,6 +512,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         }
 
         unsigned long long writeTime = 47000000;
+
+        cout << "Choose: " << localp << " " << localdSize - 1 << " " << starting.size() << endl;
 
         for (unsigned long long z = startingIndex; z < upperBound && choose(differenceCover, localp, localdSize - 1, starting.size()); z++) {
             if (checkWrite(differenceCover, testCover)) {
