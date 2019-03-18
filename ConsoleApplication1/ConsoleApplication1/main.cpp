@@ -483,6 +483,14 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
     } else { //this is for half or above
         int preGroup = groupNodes;
         int preId = groupid;
+
+		if (localp - localThird - 1 < localdSize - 1) {
+			groupid = preGroup;
+			groupNodes = preId;
+
+			return 0;
+		}
+
         unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize - 1);
         unsigned long long startValue = 0;
         unsigned long long instanceStart = 0;
