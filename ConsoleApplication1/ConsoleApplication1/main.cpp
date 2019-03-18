@@ -435,7 +435,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 				groupid = preGlobalId;
 				groupNodes = preGlobalGroup;
 
-				return 0;
+				continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
 			}
 
             int preGroup = groupNodes;
@@ -493,7 +493,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 			groupid = preGroup;
 			groupNodes = preId;
 
-			return 0;
+			return 0; //we return here because there is no hope for change
 		}
 
         unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize - 1);
