@@ -38,14 +38,14 @@ gcd(unsigned long long x, unsigned long long y) {
 unsigned long long
 nChoosek(unsigned long long n, unsigned long long k) {
     if (k > n)
-        throw std::invalid_argument("invalid argument in choose");
+        throw std::invalid_argument("invalid argument in nChoosek");
     unsigned long long r = 1;
     for (unsigned long long d = 1; d <= k; ++d, --n) {
         unsigned long long g = gcd(r, d);
         r /= g;
         unsigned long long t = n / (d / g);
         if (r > std::numeric_limits<unsigned long long>::max() / t)
-            throw std::overflow_error("overflow in choose");
+            throw std::overflow_error("overflow in nChoosek");
         r *= t;
     }
     return r;
@@ -282,15 +282,15 @@ void cover(string out) {
             lineaStream >> startingThird;
         }
 
-        cout << dSize << " " << startingThird << endl;
+        cout << "Thread: " << id << " read " << dSize << " " << startingThird << endl;
     }
 
     while (dSize <= max) {
         for (int i = startingThird; i > 1; i--) {
-            startingThird = int((p + 1) / 2) + 1;
             groupid = id;
             groupNodes = nn;
-            cout << "Thread: " << id << " the new starting third is " << i << endl;
+            
+			cout << "Thread: " << id << " the new starting third is " << i << endl;
 
             recursiveLock(differenceCover, testCover, p, dSize - 2, i, starting);
 
@@ -302,6 +302,7 @@ void cover(string out) {
             myfile << i << endl;
             myfile.close();
 
+			cout << "Thread: " << id << " is waiting for the rest" << endl;
             MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
             if (check()) {
                 groupid = id;
@@ -314,7 +315,13 @@ void cover(string out) {
             }
         }
 
-        cout << "Thread: " << id << " is waiting for the rest" << endl;
+		startingThird = int((p + 1) / 2) + 1;
+
+		ofstream myfile;
+		myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
+		myfile << dSize << endl;
+		myfile << startingThird << endl;
+		myfile.close();
 
         checkCount = 0;
     }
@@ -419,6 +426,13 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             for (int i = localStartLock; i < lock; i++) {
                 sc.push_back(i);
             }
+
+			if (sc.size() < dSize - 2) {
+				groupid = preGlobalId;
+				groupNodes = preGlobalGroup;
+
+				return 0;
+			}
 
             int preGroup = groupNodes;
             int preId = groupid;
