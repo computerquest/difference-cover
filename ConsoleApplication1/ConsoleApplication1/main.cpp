@@ -102,14 +102,11 @@ int id; //the id of this process
 int ierr;
 int nn; //number of connected nodes
 string pFile = "";
-unsigned long long lastComb = 0;
 int p = -1;
 int dSize = -1;
-unsigned long long checkCount = 0;
 int groupNodes;
 int groupid;
 string combinedOut = "testing.txt";
-unsigned long long totalCheck = 0;
 
 void calcBounds(unsigned long long numNum, unsigned long long &iters, unsigned long long &starting) {
     int preGroup = groupNodes;
@@ -122,7 +119,6 @@ void calcBounds(unsigned long long numNum, unsigned long long &iters, unsigned l
     }
 
     if (groupid >= numNum) {
-        //cout << "id reassignment time " << groupid << " " << numNum << " going for " << groupid % numNum << endl;
         groupid = groupid % numNum;
     }
 
@@ -212,7 +208,7 @@ int main(int argc, char *argv[]) {
         pFile = patch::stringMaker(p);
 
         if (check()) {
-            cout << "Thread: " << id << " found before starting" << endl;
+            cout << "Thread: " << id << " found " << p << " before starting" << endl;
             p++;
             continue;
         }
@@ -286,27 +282,29 @@ void cover(string out) {
     }
 
     while (dSize <= max) {
+        cout << "dSize is now " << dSize << endl;
         for (int i = startingThird; i > 1; i--) {
+            if (id == 0) {
+                cout << "Thread: " << id << " is writing " << dSize << " " << i << endl;
+                ofstream myfile;
+                myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
+                myfile << dSize << endl;
+                myfile << i << endl;
+                myfile.close();
+            }
+
+            //this probably isn't neededd but is a safety for low cost
             groupid = id;
             groupNodes = nn;
-            
-			cout << "Thread: " << id << " the new starting third is " << i << endl;
+
+            cout << "Thread: " << id << " the new starting third is " << i << endl;
 
             recursiveLock(differenceCover, testCover, p, dSize - 2, i, starting);
 
             cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
 
 
-
-            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
-
-            ofstream myfile;
-            myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
-            myfile << dSize << endl;
-            myfile << i << endl;
-            myfile.close();
-
-			cout << "Thread: " << id << " is waiting for the rest" << endl;
+            cout << "Thread: " << id << " is waiting for the rest" << endl;
             MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
             if (check()) {
                 groupid = id;
@@ -319,28 +317,19 @@ void cover(string out) {
             }
         }
 
-		startingThird = int((p + 1) / 2) + 1;
-
-		ofstream myfile;
-		myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
-		myfile << dSize << endl;
-		myfile << startingThird << endl;
-		myfile.close();
-
-        checkCount = 0;
+        startingThird = int((p + 1) / 2) + 1;
+        dSize++;
     }
 
     delete[] testCover;
     delete[] differenceCover;
 } // end cover
 
-int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting) {
+int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting) { //should starting be a reference and have a reserved size???
     //is this needed????
     for (int i = 0; i < localp; i++) {
         testCover[i] = 0;
     }
-
-    int ans = 0;
 
     if (localThird < int((p + 1) / 2)) { //this is for below the half
         int preGlobalGroup = groupNodes;
@@ -367,15 +356,15 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
             bool perfectRef = true;
 
-            for (int i = 2; i <= starting.size(); i++) {
-                if (p + 1 - differenceCover[i] != differenceCover[dSize + 1 - i]) {
-                    perfectRef = false;
-                    break;
-                }
-            }
-
             if (2 > starting.size()) {
                 perfectRef = false;
+            } else {
+                for (int i = 2; i <= starting.size(); i++) {
+                    if (p + 1 - differenceCover[i] != differenceCover[dSize + 1 - i]) {
+                        perfectRef = false;
+                        break;
+                    }
+                }
             }
 
             if (localdSize - 2 == 0) {
@@ -406,7 +395,12 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 calcBounds(numNum, iters, startingLock);
 
                 for (int i = startingLock + iters; i >= startingLock; i--) {
-                    recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting);
+                    if (recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting) || check()) { //added check here in case none of the recursives have the time to check
+                        groupid = preGlobalId;
+                        groupNodes = preGlobalGroup;
+
+                        return 1;
+                    }
                 }
 
                 groupid = preId;
@@ -414,8 +408,6 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
 
                 starting.erase(starting.begin() + starting.size() - 1);
                 continue;
-            } else if (perfectRef && localThird < int(p / 2) + 1 && localdSize - 2 == 1) {
-                differenceCover[starting.size() + 1] = int(p / 2) + 1;
             }
 
             int localStartLock = localThird + 1;
@@ -431,12 +423,9 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 sc.push_back(i);
             }
 
-			if (sc.size() < dSize - 2) {
-				groupid = preGlobalId;
-				groupNodes = preGlobalGroup;
-
-				continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
-			}
+            if (sc.size() < localdSize - 2) {
+                continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
+            }
 
             int preGroup = groupNodes;
             int preId = groupid;
@@ -447,10 +436,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             calcBounds(numNum, instanceStart, startValue);
             unsigned long long upperBound = instanceStart + startValue;
 
-            vector<int> localStart;
-            {
-                localStart = kthCombination(startValue, sc, localdSize - 2);
-            }
+            vector<int> localStart = kthCombination(startValue, sc, localdSize - 2);
             for (int i = 0; i < localdSize + starting.size(); i++) {
                 if (i < starting.size()) {
                     differenceCover[i] = starting[i];
@@ -466,15 +452,19 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             unsigned long long startingIndex = startValue + 1;
 
             if (checkWrite(differenceCover, testCover)) {
-                groupid = preId;
-                groupNodes = preGroup;
+                groupid = preGlobalId;
+                groupNodes = preGlobalGroup;
 
                 return 1;
             }
 
-            cout << "Choose: " << lock << " " << localdSize-2 << " " << starting.size() << endl;
             for (unsigned long long count = startingIndex; count < upperBound && choose(differenceCover, lock, localdSize - 2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
                 if (checkWrite(differenceCover, testCover)) {
+                    groupid = preGlobalId;
+                    groupNodes = preGlobalGroup;
+
+                    return 1;
+                } else if ((count-startingIndex) % 47000000 == 0 && check()) { //count-startingIndex makes it so that count is treated like 0
                     groupid = preId;
                     groupNodes = preGroup;
 
@@ -482,19 +472,22 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 }
             }
 
-            groupid = preId;
-            groupNodes = preGroup;
+            groupid = preId; //this can be the pre because it will loop through and we want it to be normal so it can be looped and assigned as before
+            groupNodes = preGroup; //this is the equivalent of setting it to the resulting assigned global (normal again)
         }
+
+        groupid = preGlobalId;
+        groupNodes = preGlobalGroup;
     } else { //this is for half or above
         int preGroup = groupNodes;
         int preId = groupid;
 
-		if (localp - localThird - 1 < localdSize - 1) {
-			groupid = preGroup;
-			groupNodes = preId;
+        if (localp - localThird - 1 < localdSize - 1) {
+            groupid = preGroup;
+            groupNodes = preId;
 
-			return 0; //we return here because there is no hope for change
-		}
+            return 0; //we return here because there is no hope for change
+        }
 
         unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize - 1);
         unsigned long long startValue = 0;
@@ -534,17 +527,13 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             return 1;
         }
 
-        unsigned long long writeTime = 47000000;
-
-        cout << "Choose: " << localp << " " << localdSize - 1 << " " << starting.size() << endl;
-
         for (unsigned long long z = startingIndex; z < upperBound && choose(differenceCover, localp, localdSize - 1, starting.size()); z++) {
             if (checkWrite(differenceCover, testCover)) {
                 groupid = preId;
                 groupNodes = preGroup;
 
                 return 1;
-            } else if (z % writeTime == 0 && check()) {
+            } else if ((z-startingIndex) % 47000000 == 0 && check()) {
                 groupid = preId;
                 groupNodes = preGroup;
 
@@ -556,7 +545,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         groupNodes = preGroup;
     }
 
-    return ans;
+    //the ids should already be reset and we just need to say we didn't find anything
+    return 0;
 }
 
 
