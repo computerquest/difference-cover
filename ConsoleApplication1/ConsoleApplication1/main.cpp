@@ -168,6 +168,9 @@ bool checkWrite(int *differenceCover, int *testCover) {
  * RUN: mpiexec \-n [NUMBER OF INSTANCES] main [PARAMETERS]
  * EXAMPLE: mpiexec \-n 4 main stuff.txt 100
  */
+/*
+ * THIS CODE WILL PRODUCE REPEAT COVERS IF THE NUMBER OF CORES IS GREATER THAN THE NUMBER OF COMBINATIONS AT ANY POINT
+ */
 int main(int argc, char *argv[]) {
     ierr = MPI_Init(&argc, &argv);
     ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
@@ -222,7 +225,7 @@ int main(int argc, char *argv[]) {
         p++;
     }
 
-    cout << "Thread: " << id << " is finished. Checked: " << totalCheck << endl;
+    cout << "Thread: " << id << " is finished." << endl;
 
     MPI_Finalize();
 
@@ -326,11 +329,6 @@ void cover(string out) {
 } // end cover
 
 int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSize, int localThird, vector<int> starting) { //should starting be a reference and have a reserved size???
-    //is this needed????
-    for (int i = 0; i < localp; i++) {
-        testCover[i] = 0;
-    }
-
     if (localThird < int((p + 1) / 2)) { //this is for below the half
         int preGlobalGroup = groupNodes;
         int preGlobalId = groupid;
@@ -557,11 +555,9 @@ int choose(int *pattern, int localp, int localdSize, int safe) {
         pattern[localdSize - 1]++;
         return 1;
     } else if (pattern[localdSize - 1] == localp - 1) {
-        bool ret = 0;
-
         for (int a = 1; localdSize - a >= 0; a++) {
             if (localdSize - a <= safe) {
-                ret = 1;
+                return 0;
             }
             pattern[localdSize - a]++;
 
@@ -575,15 +571,11 @@ int choose(int *pattern, int localp, int localdSize, int safe) {
             }
         }
 
-        if (ret) {
-            return 0; //TODO: RETURN SOONER (CHECK)
-        }
         return 1;
     }
 } // end choose
 
 int isCover(const int *differenceCover, int *testCover) {
-    checkCount++;
     double *temp = (double *) testCover;
     for (int x = 0; x < p / 2; x++)
         temp[x] = 0;
@@ -592,16 +584,14 @@ int isCover(const int *differenceCover, int *testCover) {
 
     for (int x = 0; x < dSize - 1; x++) {
         for (int y = x + 1; y < dSize; y++) {
-            int xa = differenceCover[x];
-            int ya = differenceCover[y];
-
-            int q = ya - xa;
+            int q = differenceCover[y] - differenceCover[x];
             testCover[q] = testCover[p - q] = 1;
         }
     }
 
     if (size(testCover, p) == p)
         return 1;
+
     return 0;
 } // end isCover //set the p per method and add a cut off
 
