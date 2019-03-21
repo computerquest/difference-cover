@@ -431,6 +431,10 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             unsigned long long startValue = 0;
             unsigned long long instanceStart = 0;
 
+			if (numNum == 0) {
+				continue;
+			}
+
             calcBounds(numNum, instanceStart, startValue);
             unsigned long long upperBound = instanceStart + startValue;
 
