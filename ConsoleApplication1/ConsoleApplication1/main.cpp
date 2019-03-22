@@ -485,8 +485,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
         int preId = groupid;
 
         if (localp - localThird - 1 < localdSize - 1) {
-            groupid = preGroup;
-            groupNodes = preId;
+            groupid = preId;
+            groupNodes = preGroup;
 
             return 0; //we return here because there is no hope for change
         }
