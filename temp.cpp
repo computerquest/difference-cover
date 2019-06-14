@@ -1,4 +1,4 @@
-// Ankur Gupta
+/// Ankur Gupta
 // Mathematics Honors Thesis
 // Difference Covers
 // 8 May 2000
@@ -365,6 +365,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 }
             }
 
+            //this is for if there is nothing to change after assigning the lock
             if (localdSize - 2 == 0) {
                 if (checkWrite(differenceCover, testCover)) {
                     groupid = preGlobalId;
@@ -376,6 +377,8 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 continue;
             }
 
+            //when there is still stuff (more than one number to change) to do and it is perfect
+            //there is no else statement for when it isn't perfect but still has a bunch of empty space because no one cares it just the same procedure in which you keep incrementing one and the other will gradually change so you will have checked everything
             if (localdSize - 2 > 1 && perfectRef) {
                 starting.push_back(localThird);
 
@@ -414,6 +417,7 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
                 localStartLock = int(p / 2) + 1;
             }
 
+            //calcs all this based on the segment that has yet to be determined for just a plugin (not bad)
             vector<int> sc;
             sc.reserve(lock - localStartLock);
 
@@ -431,9 +435,9 @@ int recursiveLock(int *differenceCover, int *testCover, int localp, int localdSi
             unsigned long long startValue = 0;
             unsigned long long instanceStart = 0;
 
-			if (numNum == 0) {
-				continue;
-			}
+            if (numNum == 0) {
+                continue;
+            }
 
             calcBounds(numNum, instanceStart, startValue);
             unsigned long long upperBound = instanceStart + startValue;
