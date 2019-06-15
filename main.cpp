@@ -458,7 +458,7 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
 
             vector<int> endCover = kthCombination(upperBound, sc, localdSize);
 
-            if(generateCover(differenceCover[differenceCover.size() - 1 - localdSize], dSize-localStart.size(), endCover.back()+1)) {
+            if(generateCover(differenceCover[differenceCover.size() - 1 - localdSize], dSize-localStart.size(), endCover.front()+1)) {
                 popLayer();
 
                 return 1;
@@ -476,6 +476,45 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
         }
 
     } else { //this is for half or above
+        localdSize--;
+
+        if(!push(localThird)) {
+            return 0;
+        }
+
+        if (localp - localThird - 1 < localdSize) {
+            return 0; //we return here because there is no hope for change
+        }
+
+        unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize);
+        unsigned long long startValue = 0;
+        unsigned long long instanceStart = 0;
+
+        calcBounds(numNum, instanceStart, startValue);
+        unsigned long long upperBound = startValue + instanceStart;
+
+        vector<int> sc;
+        sc.reserve(localp - (localThird + 1));
+
+        for (int i = localThird + 1; i < localp; i++) {
+            sc.push_back(i);
+        }
+
+        vector<int> localStart = kthCombination(startValue, sc, localdSize);
+
+
+        differenceCover.push_back(localStart.front());
+        updateTest(differenceCover.back());
+
+        vector<int> endCover = kthCombination(upperBound, sc, localdSize);
+
+        if(generateCover(differenceCover[differenceCover.size() - 1 - localdSize], dSize-localStart.size(), endCover.front()+1)) {
+            popLayer();
+
+            return 1;
+        }
+
+        popLayer();
     }
 
     //this is the popback for the starting third
