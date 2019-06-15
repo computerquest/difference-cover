@@ -9,6 +9,9 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <bits/stat.h>
+#include <limits>
+#include <mpi.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -18,6 +21,7 @@ int dSize;
 vector<int> differenceCover; //this is a vector but it acts as a stack
 int *testCover;
 string pFile;
+string globalFile;
 
 ///////////////////mpi
 vector<int> groupNodes; //this is a stack
@@ -71,6 +75,12 @@ void calcBounds(unsigned long long numNum, unsigned long long &iters, unsigned l
     this->groupid.push_back(groupid);
 }
 
+void popLayer() {
+    //pop();
+    groupNodes.pop_back();
+    groupid.pop_back();
+}
+
 unsigned long long gcd(unsigned long long x, unsigned long long y) {
     while (y != 0) {
         unsigned long long t = x % y;
@@ -93,6 +103,71 @@ unsigned long long nChoosek(unsigned long long n, unsigned long long k) {
         r *= t;
     }
     return r;
+}
+
+vector<int> kthCombination(unsigned long long k, vector<int> l, int r) {
+    if (r == 0) {
+        vector<int> ans;
+        return ans;
+    } else if (l.size() == r) {
+        return l;
+    } else {
+        unsigned long long i = nChoosek(l.size() - 1, r - 1);//calculare number of combinations
+        if (k < i) {
+            vector<int> ans;
+            ans.push_back(l[0]);
+
+            vector<int> tertiary(l.begin() + 1, l.end());
+
+            vector<int> secondary = kthCombination(k, tertiary, r - 1);
+
+            ans.insert(ans.end(), secondary.begin(), secondary.end());
+
+            return ans;
+        } else {
+            vector<int> ans;
+
+            vector<int> tertiary(l.begin() + 1, l.end());
+
+            vector<int> secondary = kthCombination(k - i, tertiary, r);
+
+            return secondary;
+        }
+    }
+}
+
+bool check() {
+    struct stat b;
+    if (stat((pFile + ".txt").c_str(), &b) == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int push(int num) {
+    updateTest(num);
+
+    differenceCover.push_back(num);
+
+    //this is to make sure that the change we are making can still yield a cover
+    //TODO make sure that this doesn't fuck with adding 0 and 1
+    if (isCover()) {
+        return 1;
+    } else {
+        pop(num); //popping here takes a lot of control away
+        return 0;
+    }
+}
+
+int pop() {
+    int num = differenceCover.back();
+
+    differenceCover.pop_back();
+
+    undoTest(num);
+
+    return num;
 }
 
 /////////////////////////////
@@ -127,7 +202,7 @@ int main(int argc, char *argv[]) {
         numberToCompute = atoi(argv[3]);
 
     string outFile = argv[1];
-    combinedOut = outFile;
+    globalFile = outFile;
 
     groupNodes.push_back(nn);
     groupid.push_back(id);
@@ -184,7 +259,6 @@ void startSearch() {
     unsigned long long totalCombo = nChoosek(p - 2, dSize - 2) / 2;
     int startingThird = int((p + 1) / 2) + 1;
 
-    //TODO update and clean up this copy paste
     struct stat buffer;
     if (stat((pFile + "_0.txt").c_str(), &buffer) == 0) {
         ifstream infile((pFile + "_0.txt").c_str());
@@ -209,8 +283,10 @@ void startSearch() {
         cout << "Thread: " << id << " read " << dSize << " " << startingThird << endl;
     }
 
-    differenceCover.push_back(0);
-    differenceCover.push_back(1);
+
+    //TODO might need to do these manually (hopefully shouldn't)
+    push(0);
+    push(1);
 
     while (dSize <= max) {
         cout << "dSize is now " << dSize << endl;
@@ -227,7 +303,31 @@ void startSearch() {
             cout << "Thread: " << id << " the new starting third is " << i << endl;
 
             //TODO this section will be subject to change because it makes the start uneven
-            searchCovers(startingThird, dSize - 2, true);
+            if(searchCovers(startingThird, dSize - 2, true) && testSize() == p) {
+                //this is the individual write
+                ofstream myfilea;
+                myfilea.open((pFile + ".txt").c_str(), ios::trunc);
+                for (int a = 0; a < dSize - 1; a++) {
+                    myfilea << differenceCover[a] << " ";
+                }
+                myfilea << differenceCover[dSize - 1] << endl;
+                myfilea.close();
+
+
+                //this is the all together write
+                ofstream out;
+                out.open(file.c_str(), ios::app);
+
+                out << setw(4) << p;
+                int f = dSize;
+                out << setw(9) << f;
+                out << setw(8);
+                for (int x = 0; x < dSize; x++) {
+                    out << differenceCover[x] << setw(3);
+                }
+                out << endl;
+                out.close();
+            }
 
             cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
 
@@ -256,7 +356,9 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
         localp = p;
     }
 
-    differenceCover.push_back(localThird);
+    if(!push(localThird)) {
+        return 0;
+    }
 
     //TODO any returns need to have difference cover and the mpi id stuff pop before hand
     if (localThird < int((p + 1) / 2)) { //this is for below the half //TODO have ending function?
@@ -268,38 +370,32 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
         calcBounds(numGlobalNum, globalIters, startingGlobalLock);
         unsigned long long globalUpperBound = startingGlobalLock + globalIters;
 
+        localdSize -= 2;
 
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++) {
-            differenceCover.push_back(lock);
-
-            //TODO update this (fully)
-            //this is for if there is nothing to change after assigning the lock
-            if (differenceCover.size() == dSize) {
-                if (checkWrite(differenceCover, testCover)) {
-                    groupid.pop_back();
-                    groupNodes.pop_back();
-
-                    return 1;
-                }
-
+            if(!push(lock)) {
                 continue;
+            } else if(differenceCover.size() == dSize) {
+                popLayer();
+
+                return 1;
             }
 
-            if (localdSize - 2 > 1 && (perfect = perfect && lock == startingGlobalLock)) { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
-                int numNum = lock - (localdSize - 2) - localThird - 1;
+            if (localdSize > 1 && (perfect = perfect && lock == startingGlobalLock)) { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
+                int numNum = lock - (localdSize) - localThird - 1;
                 unsigned long long startingLock = localThird + 1;
                 unsigned long long iters = 0;
 
                 if (numNum == 0) {
+                    pop();
                     continue;
                 }
 
                 calcBounds(numNum, iters, startingLock);
 
                 for (int i = startingLock + iters; i >= startingLock; i--) {
-                    if (recursiveLock(differenceCover, testCover, lock, localdSize - 2, i, starting) || check()) { //added check here in case none of the recursives have the time to check
-                        groupid.pop_back();
-                        groupNodes.pop_back();
+                    if (searchCovers(localdSize, i, perfect) || check()) { //added check here in case none of the recursives have the time to check
+                        popLayer();
 
                         return 1;
                     }
@@ -307,31 +403,36 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
 
                 //shouldn't need any id reset because the preceeding layer handles
 
-                starting.erase(starting.begin() + starting.size() - 1);
+                pop();
                 continue;
+            }
+
+            if (check()) { //added check here in case none of the recursives have the time to check
+                popLayer();
+
+                return 1;
             }
 
             int localStartLock = localThird + 1;
 
-            if (perfect && localThird < int(p / 2) + 1 && localdSize - 2 == 1) {
+            if (perfect && localThird < int(p / 2) + 1 && localdSize == 1) {
                 localStartLock = int(p / 2) + 1;
             }
 
             //calcs all this based on the segment that has yet to be determined for just a plugin (not bad)
-            vector<int> sc;
+            vector<int> sc; //this is all the possible numbers between the startingThird and the lock
             sc.reserve(lock - localStartLock);
 
             for (int i = localStartLock; i < lock; i++) {
                 sc.push_back(i);
             }
 
-            if (sc.size() < localdSize - 2) {
+            //this condition asks if there are more spots than numbers to choose from
+            if (sc.size() < localdSize) {
                 continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
             }
 
-            int preGroup = groupNodes;
-            int preId = groupid;
-            unsigned long long numNum = nChoosek(sc.size(), localdSize - 2);
+            unsigned long long numNum = nChoosek(sc.size(), localdSize);
             unsigned long long startValue = 0;
             unsigned long long instanceStart = 0;
 
@@ -342,42 +443,132 @@ int searchCovers(int localThird, int localdSize, bool perfect) {
             calcBounds(numNum, instanceStart, startValue);
             unsigned long long upperBound = instanceStart + startValue;
 
+            //TODO add the reassignments for the check (might need to get rid of the check and do manually for these)
+            /*
+             * thinking that you could use generate cover after manually adding one less than the first value and updating test because it will immidiately try out you number by adding one
+             * then it will procees to go through the rest of the checks
+             * this wouldn't allow the accuracy of the kth combo but it would make stuff a lot easier at the cost of a couple hundred or thousand of covers
+             * it would also probably be faster
+             */
             //this needs to populate differenceCover the rest of the way with values
-            vector<int> localStart = kthCombination(startValue, sc, localdSize - 2);
-            for(int i = differenceCover.size(), count = 0; i < dSize; i++, count++) {
-                differenceCover.push_back(localStart[count]);
-            }
+            vector<int> localStart = kthCombination(startValue, sc, localdSize);
 
-            //TODO this might go because of the way choose is changed to
-            unsigned long long startingIndex = startValue + 1;
+            differenceCover.push_back(localStart.front());
+            updateTest(differenceCover.back());
 
-            if (checkWrite(differenceCover, testCover)) {
-                groupid.pop_back();
-                groupNodes.pop_back();
+            vector<int> endCover = kthCombination(upperBound, sc, localdSize);
+
+            if(generateCover(differenceCover[differenceCover.size() - 1 - localdSize], dSize-localStart.size(), endCover.back()+1)) {
+                popLayer();
 
                 return 1;
             }
 
-            //TODO update this to reflect
-            for (unsigned long long count = startingIndex; count < upperBound && choose(differenceCover, lock, localdSize - 2, starting.size()); count++) { //this compensates for adding the num we check and subtracting 2 dsize
-                if (checkWrite(differenceCover, testCover)) {
-                    groupid = preGlobalId;
-                    groupNodes = preGlobalGroup;
+            popLayer();
 
-                    return 1;
-                } else if ((count-startingIndex) % 47000000 == 0 && check()) { //count-startingIndex makes it so that count is treated like 0
-                    groupid = preId;
-                    groupNodes = preGroup;
-
-                    return 1;
-                }
+            //TODO this will need to pop all the way back to origin (double check) (might need to pop more off), but does it really matter? This branch would have been explored already
+            //this is the pop back for any other number that needed to be filled
+            while(differenceCover.size() > dSize-localStart.size()) {
+                pop();
             }
 
-            groupid.pop_back();
-            groupNodes.pop_back();
-            //TODO this will need to pop all the way back to origin (double check)
-            differenceCover.pop_back();
+            pop(); //this is the popback for the lock
         }
+
     } else { //this is for half or above
     }
+
+    //this is the popback for the starting third
+    pop();
+}
+
+/*(
+ * the expectation is that you run this
+ * it will increment the las number and see if it works
+ * when it doesn't work it starts popping off
+ * eventually this is done leaving only what is in bounds
+ * TODO test
+ */
+int generateCover(int localp, int minSize, int stop) {
+    int pval = pop();
+    for(int i = 1; differenceCover.back() < localp - (dSize - differenceCover.size())-1; i++) { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
+        if(push(pval+i)) {
+            return 1;
+        }
+    }
+
+    int lastPop = 0;
+    //we can't pop off the last number because it has to increment to build back up again
+    while (differenceCover.back() >= localp - (dSize - differenceCover.size())) { //the one before the edit space
+        if(differenceCover.size() > minSize) {
+            lastPop = pop();
+        } else {
+            return 0;
+        }
+    }
+
+    push(lastPop); //there shouldn't be an issue with pushing this again because it was certified once and that is how it got onto the stack
+
+    while(differenceCover.size() < dSize) {
+        if(!generateCover(localp, minSize, stop)) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+void updateTest(int num) {
+    for (int i = 0; i < differenceCover.size(); i++) {
+        int q = 0;
+        if (num < differenceCover[i]) {
+            q = differenceCover[i] - num;
+        } else {
+            q = num - differenceCover[i];
+        }
+
+        testCover[q]++;
+        testCover[p - q]++;
+    }
+
+    //TODO might not need because the number wouldn't have been added yet
+    testCover[0] = 1;
+}
+
+//exact same as isCover just the reverse
+void undoTest(int num) {
+    for (int i = 0; i < differenceCover.size(); i++) {
+        int q = 0;
+        if (num < differenceCover[i]) {
+            q = differenceCover[i] - num;
+        } else {
+            q = num - differenceCover[i];
+        }
+
+        testCover[q]--;
+        testCover[p - q]--;
+    }
+
+    //TODO might not need because the number would not have been added yet
+    testCover[0] = 1;
+}
+
+int isCover() {
+    //TODO make sure this actually says if you got a whole cover
+    if ((p - 1) - differenceCover.size() * 2 <= testSize()) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int testSize() {
+    int size = 0;
+    for (int i = 0; i < p; i++) {
+        if (testCover[i] != 0) {
+            size++;
+        }
+    }
+
+    return size;
 }
