@@ -13,13 +13,9 @@ int isCover();
 
 void undoTest(int num);
 
-void quickCheck();
-
-int nextCover();
-
 int push(int num);
 
-int pop(int num);
+int pop();
 
 int testSize();
 
@@ -35,7 +31,7 @@ unsigned long long gcd(unsigned long long x, unsigned long long y);
 
 unsigned long long nChoosek(unsigned long long n, unsigned long long k);
 
-int generateCover(int localdSize, int minSize, int stop);
+int generateCover(int localp, int minSize, int stop);
 
 vector<int> kthCombination(unsigned long long k, vector<int> l, int r);
 
