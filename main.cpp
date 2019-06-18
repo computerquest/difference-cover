@@ -1,6 +1,7 @@
 //
 // Created by jstigter on 6/10/19.
 //
+//TODO add all the mpi stuff back
 #include <string>
 #include "main.h"
 #include <vector>
@@ -10,7 +11,7 @@
 #include <sys/stat.h>
 #include <bits/stat.h>
 #include <limits>
-#include <mpi.h>
+//#include <mpi.h>
 #include <iomanip>
 #include <math.h>
 
@@ -27,9 +28,9 @@ string globalFile;
 ///////////////////mpi
 vector<int> groupNodes; //this is a stack
 vector<int> groupid;    //this is a stack
-int id;                 //the id of this process
+int id = 0;             //the id of this process
 int ierr;
-int nn; //number of connected nodes
+int nn = 1; //number of connected nodes
 
 ///////////////////////////////////////////////////RESOURCE FUNCTIONS///////////////////////////
 namespace patch
@@ -135,7 +136,6 @@ unsigned long long nChoosek(unsigned long long n, unsigned long long k)
 
 vector<int> kthCombination(unsigned long long k, vector<int> l, int r)
 {
-    cout << "kthCombo baby!!!!!!!!!!!!!! " << k << endl;
     if (r == 0)
     {
         vector<int> ans;
@@ -229,9 +229,9 @@ int pop()
 /////////////////////////////
 int main(int argc, char *argv[])
 {
-    ierr = MPI_Init(&argc, &argv);
+    /*ierr = MPI_Init(&argc, &argv);
     ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
-    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);
+    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);*/
 
     if (argc == 1)
     {
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+        //MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
 
         cout << "Thread: " << id << " on: " << p << endl;
 
@@ -291,8 +291,9 @@ int main(int argc, char *argv[])
 
     cout << "Thread: " << id << " is finished." << endl;
 
-    MPI_Finalize();
+    //MPI_Finalize();
 
+    cout << "mpi was finalized" << endl;
     return 0;
 } // end main
 
@@ -433,12 +434,13 @@ void startSearch()
             cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
 
             cout << "Thread: " << id << " is waiting for the rest" << endl;
-            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+            //MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
             if (check())
             {
                 cout << "we are returning: " << endl;
 
-                for(int x = 0; x < differenceCover.size(); x++) {
+                for (int x = 0; x < differenceCover.size(); x++)
+                {
                     cout << differenceCover[x] << " ";
                 }
                 cout << endl;
@@ -451,7 +453,7 @@ void startSearch()
         startingThird = int((p + 1) / 2) + 1;
         dSize++;
     }
-    
+
     cout << "we have return from the back" << endl;
     delete[] testCover;
 }
@@ -871,21 +873,10 @@ int searchCovers(int localThird, int localdSize, bool perfect)
  */
 int generateCover(int localp, int minSize, int stop)
 {
-    int startSize = differenceCover.size();
-    cout << "Generating Cover: ";
+    while (differenceCover.size() < dSize)
     {
-        cout << "differenceCover: ";
-        for (int i = 0; i < differenceCover.size(); i++)
-        {
-            cout << differenceCover[i] << " ";
-        }
-
-        cout << endl;
-    }
-
-    if (differenceCover.size() <= minSize)
-    {
-        cout << "returning from the min size on start " << minSize << " " << differenceCover.size() << endl;
+        int startSize = differenceCover.size();
+        cout << "Generating Cover: ";
         {
             cout << "differenceCover: ";
             for (int i = 0; i < differenceCover.size(); i++)
@@ -896,42 +887,55 @@ int generateCover(int localp, int minSize, int stop)
             cout << endl;
         }
 
+        if (differenceCover.size() <= minSize)
         {
-            cout << "testCover: ";
-            for (int i = 0; i < p; i++)
+            cout << "returning from the min size on start " << minSize << " " << differenceCover.size() << endl;
             {
-                if (testCover[i] != 0)
+                cout << "differenceCover: ";
+                for (int i = 0; i < differenceCover.size(); i++)
                 {
-                    cout << "(" << testCover[i] << "," << i << ")";
+                    cout << differenceCover[i] << " ";
+                }
+
+                cout << endl;
+            }
+
+            {
+                cout << "testCover: ";
+                for (int i = 0; i < p; i++)
+                {
+                    if (testCover[i] != 0)
+                    {
+                        cout << "(" << testCover[i] << "," << i << ")";
+                    }
+                }
+                cout << endl;
+            }
+            return 0;
+        }
+
+        int pval = pop();
+
+        //this is the part that fills the cover because it doesn't break after pushing it keeps boing getting higher and higher
+        for (int i = 1; pval + i <= localp - (dSize - (differenceCover.size() + 1)) - 1; i++)
+        { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
+            //cout << "that pval upperbound is "<< localp - dSize - int(differenceCover.size()) - 1 << " " << localp << " " << dSize << " " << differenceCover.size() << endl;
+            if (push(pval + i))
+            { //this is to make sure that this function does not exit before filling everything
+                if (differenceCover.size() == dSize)
+                {
+                    return 1;
+                }
+                else if (differenceCover.size() == minSize + 1 && differenceCover.back() == stop)
+                {
+                    cout << "stop condition met" << endl;
+                    return 0;
                 }
             }
-            cout << endl;
         }
-        return 0;
-    }
 
-    int pval = pop();
-
-    //this is the part that fills the cover because it doesn't break after pushing it keeps boing getting higher and higher
-    for (int i = 1; pval + i <= localp - (dSize - (differenceCover.size() + 1)) - 1; i++)
-    { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
-        //cout << "that pval upperbound is "<< localp - dSize - int(differenceCover.size()) - 1 << " " << localp << " " << dSize << " " << differenceCover.size() << endl;
-        if (push(pval + i))
-        { //this is to make sure that this function does not exit before filling everything
-            if (differenceCover.size() == dSize)
-            {
-                return 1;
-            }
-            else if (differenceCover.size() == minSize + 1 && differenceCover.back() == stop)
-            {
-                cout << "stop condition met" << endl;
-                return 0;
-            }
-        }
-    }
-
-    //this fixed something that made it go to 0 2
-    /*if(startSize == differenceCover.size()) {
+        //this fixed something that made it go to 0 2
+        /*if(startSize == differenceCover.size()) {
         cout << "we couldn't find a number to push" << endl;
 
         if(differenceCover.size()-1 < minSize) { //need sto be less than because you add one back
@@ -941,62 +945,54 @@ int generateCover(int localp, int minSize, int stop)
         }
     }*/
 
-    int lastPop = 0;
-    //we can't pop off the last number because it has to increment to build back up again
-    while (differenceCover.back() > localp - (dSize - differenceCover.size()) - 1)
-    { //the one before the edit space
-        if (differenceCover.size() - 1 >= minSize)
-        { //need sto be less than because you add one back
+        int lastPop = 0;
+        //we can't pop off the last number because it has to increment to build back up again
+        while (differenceCover.back() > localp - (dSize - differenceCover.size()) - 1)
+        { //the one before the edit space
+            if (differenceCover.size() - 1 >= minSize)
+            { //need sto be less than because you add one back
 
-            lastPop = pop();
-        }
-        else
-        {
-            cout << "returning within the while" << endl;
-            return 0;
-        }
-    }
-
-    if (differenceCover.size() == minSize)
-    {
-        cout << "returning from the min size" << endl;
-        {
-            cout << "differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
+                lastPop = pop();
             }
-
-            cout << endl;
+            else
+            {
+                cout << "returning within the while" << endl;
+                return 0;
+            }
         }
 
+        if (differenceCover.size() == minSize)
         {
-            cout << "testCover: ";
-            for (int i = 0; i < p; i++)
+            cout << "returning from the min size" << endl;
             {
-                if (testCover[i] != 0)
+                cout << "differenceCover: ";
+                for (int i = 0; i < differenceCover.size(); i++)
                 {
-                    cout << "(" << testCover[i] << "," << i << ")";
+                    cout << differenceCover[i] << " ";
                 }
+
+                cout << endl;
             }
-            cout << endl;
-        }
-        return 0;
-    }
 
-    if (lastPop != 0)
-    {
-        push(lastPop); //there shouldn't be an issue with pushing this again because it was certified once and that is how it got onto the stack
-    }
-
-    if (differenceCover.size() < dSize)
-    {
-        if (!generateCover(localp, minSize, stop))
-        {
+            {
+                cout << "testCover: ";
+                for (int i = 0; i < p; i++)
+                {
+                    if (testCover[i] != 0)
+                    {
+                        cout << "(" << testCover[i] << "," << i << ")";
+                    }
+                }
+                cout << endl;
+            }
             return 0;
         }
-    }
 
+        if (lastPop != 0)
+        {
+            push(lastPop); //there shouldn't be an issue with pushing this again because it was certified once and that is how it got onto the stack
+        }
+    }
     cout << "we got to the end" << endl;
     return 1;
 }
