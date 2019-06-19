@@ -269,6 +269,8 @@ int main(int argc, char *argv[])
     groupNodes.push_back(nn);
     groupid.push_back(id);
 
+    testCover = new int[startValue + numberToCompute];
+
     while (p < startValue + numberToCompute)
     {
         pFile = patch::stringMaker(p);
@@ -284,16 +286,25 @@ int main(int argc, char *argv[])
 
         cout << "Thread: " << id << " on: " << p << endl;
 
+        for (int i = 0; i < p; i++)
+        {
+            testCover[i] = 0;
+        }
+
         startSearch();
 
         p++;
     }
+
 
     cout << "Thread: " << id << " is finished." << endl;
 
     //MPI_Finalize();
 
     cout << "mpi was finalized" << endl;
+    
+    delete[] testCover;
+
     return 0;
 } // end main
 
@@ -323,11 +334,6 @@ void startSearch()
 
     differenceCover.reserve(max);
 
-    testCover = new int[p];
-    for (int i = 0; i < p; i++)
-    {
-        testCover[i] = 0;
-    }
     dSize = min;
 
     unsigned long long totalCombo = nChoosek(p - 2, dSize - 2) / 2;
@@ -444,7 +450,6 @@ void startSearch()
                     cout << differenceCover[x] << " ";
                 }
                 cout << endl;
-                delete[] testCover;
 
                 return;
             }
@@ -455,7 +460,6 @@ void startSearch()
     }
 
     cout << "we have return from the back" << endl;
-    delete[] testCover;
 }
 
 int searchCovers(int localThird, int localdSize, bool perfect)
@@ -652,44 +656,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             { //the lock becomes the localp
                 cout << "we found something bitches" << endl;
 
-                int *a = new int[p];
-                for (int i = 0; i < p; i++)
-                {
-                    a[i] = 0;
-                }
-
-                for (int x = 0; x < differenceCover.size(); x++)
-                {
-                    int num = differenceCover[x];
-                    for (int i = x + 1; i < differenceCover.size(); i++)
-                    {
-                        int q = 0;
-                        if (num < differenceCover[i])
-                        {
-                            q = differenceCover[i] - num;
-                        }
-                        else
-                        {
-                            q = num - differenceCover[i];
-                        }
-
-                        a[q]++;
-                        a[p - q]++;
-                    }
-                }
-
-                //TODO might not need because the number wouldn't have been added yet
-                a[0] = 1;
-
-                cout << "actual: ";
-                for (int i = 0; i < p; i++)
-                {
-                    if (a[i] != 0)
-                    {
-                        cout << "(" << a[i] << "," << i << ")";
-                    }
-                }
-                cout << endl;
                 popLayer();
 
                 return 1;
