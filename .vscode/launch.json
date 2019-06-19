@@ -11,7 +11,7 @@
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             "args": [
                 "stuff.txt",
-                "66",
+                "78",
                 "1"
               ],
             "stopAtEntry": false,
