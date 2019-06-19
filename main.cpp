@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include <bits/stat.h>
 #include <limits>
-//#include <mpi.h>
+#include <mpi.h>
 #include <iomanip>
 #include <math.h>
 
@@ -28,9 +28,9 @@ string globalFile;
 ///////////////////mpi
 vector<int> groupNodes; //this is a stack
 vector<int> groupid;    //this is a stack
-int id = 0;             //the id of this process
+int id;                 //the id of this process
 int ierr;
-int nn = 1; //number of connected nodes
+int nn; //number of connected nodes
 
 ///////////////////////////////////////////////////RESOURCE FUNCTIONS///////////////////////////
 namespace patch
@@ -94,14 +94,15 @@ void calcBounds(unsigned long long numNum, unsigned long long &iters, unsigned l
         localId = preId / numNum;
     }
 
+    cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " before" << endl;
     //TODO make sure this isn't buggy af
     groupNodes.push_back(localNodes);
     groupid.push_back(localId);
+    cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " after" << endl;
 }
 
 void popLayer()
 {
-    //pop();
     groupNodes.pop_back();
     groupid.pop_back();
 }
@@ -190,26 +191,12 @@ int push(int num)
     updateTest(num);
     differenceCover.push_back(num);
 
-    /*{
-        cout << "after pushing: " << num << " testCover: ";
-        for (int i = 0; i < p; i++) {
-            if (testCover[i] != 0) {
-                cout << "(" << testCover[i] << "," << i << ")";
-            }
-        }
-        cout << endl;
-    }*/
-    //this is to make sure that the change we are making can still yield a cover
-    //TODO make sure that this doesn't fuck with adding 0 and 1
     if (isCover())
     {
-        //differenceCover.push_back(num);
-
         return 1;
     }
     else
     {
-        //differenceCover.push_back(num);
         pop(); //popping here takes a lot of control away
         return 0;
     }
@@ -229,9 +216,9 @@ int pop()
 /////////////////////////////
 int main(int argc, char *argv[])
 {
-    /*ierr = MPI_Init(&argc, &argv);
+    ierr = MPI_Init(&argc, &argv);
     ierr = MPI_Comm_size(MPI_COMM_WORLD, &nn);
-    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);*/
+    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
     if (argc == 1)
     {
@@ -277,14 +264,14 @@ int main(int argc, char *argv[])
 
         if (check())
         {
-            cout << "Thread: " << id << " found " << p << " before starting" << endl;
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " found " << p << " before starting" << endl;
             p++;
             continue;
         }
 
-        //MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
 
-        cout << "Thread: " << id << " on: " << p << endl;
+        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " on: " << p << endl;
 
         for (int i = 0; i < p; i++)
         {
@@ -296,13 +283,12 @@ int main(int argc, char *argv[])
         p++;
     }
 
+    cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is finished." << endl;
 
-    cout << "Thread: " << id << " is finished." << endl;
-
-    //MPI_Finalize();
+    MPI_Finalize();
 
     cout << "mpi was finalized" << endl;
-    
+
     delete[] testCover;
 
     return 0;
@@ -361,7 +347,7 @@ void startSearch()
             lineaStream >> startingThird;
         }
 
-        cout << "Thread: " << id << " read " << dSize << " " << startingThird << endl;
+        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " read " << dSize << " " << startingThird << endl;
     }
 
     push(0);
@@ -374,7 +360,7 @@ void startSearch()
         {
             if (id == 0)
             {
-                cout << "Thread: " << id << " is writing " << dSize << " " << i << endl;
+                cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is writing " << dSize << " " << i << endl;
                 ofstream myfile;
                 myfile.open((pFile + "_0.txt").c_str(), ios::trunc);
                 myfile << dSize << endl;
@@ -382,7 +368,7 @@ void startSearch()
                 myfile.close();
             }
 
-            cout << "Thread: " << id << " the new starting third is " << i << endl;
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the new starting third is " << i << endl;
 
             if (searchCovers(i, dSize - 2, true) && testSize() == p)
             {
@@ -437,10 +423,10 @@ void startSearch()
                 out.close();
             }
 
-            cout << "Thread: " << id << " is done checking startingThird: " << i << endl;
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is done checking startingThird: " << i << endl;
 
-            cout << "Thread: " << id << " is waiting for the rest" << endl;
-            //MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is waiting for the rest" << endl;
+            MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
             if (check())
             {
                 cout << "we are returning: " << endl;
@@ -458,8 +444,6 @@ void startSearch()
         startingThird = int((p + 1) / 2) + 1;
         dSize++;
     }
-
-    cout << "we have return from the back" << endl;
 }
 
 int searchCovers(int localThird, int localdSize, bool perfect)
@@ -472,20 +456,10 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         localp = p;
     }
 
-    cout << "we are starting the search by pushing: " << localThird << endl;
     if (!push(localThird))
     {
-        cout << "that starting third didn't work" << endl;
         return 0;
     }
-
-    cout << "differenceCover: ";
-    for (int i = 0; i < differenceCover.size(); i++)
-    {
-        cout << differenceCover[i] << " ";
-    }
-
-    cout << endl;
 
     //TODO any returns need to have difference cover and the mpi id stuff pop before hand
     if (localThird < int((p + 1) / 2))
@@ -496,41 +470,26 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         unsigned long long globalIters = 0;
         int numGlobalNum = localp - startingGlobalLock;
 
-        if (numGlobalNum == 0)
-        {
-            cout << "wow num num is zero" << endl;
-            //return 0;
-        }
-
         calcBounds(numGlobalNum, globalIters, startingGlobalLock);
+
         unsigned long long globalUpperBound = startingGlobalLock + globalIters;
 
         localdSize -= 2;
 
-        cout << "globalUpperBound is: " << globalUpperBound << endl;
+        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting lock is: " << startingGlobalLock << " globalUpperBound is: " << globalUpperBound << endl;
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++)
         {
-            cout << "we are trying lock: " << lock << endl;
             if (!push(lock))
             {
-                cout << "lock: " << lock << " didn't work" << endl;
                 continue;
             }
             else if (differenceCover.size() == dSize)
             {
-                cout << "we won the game bitches" << endl;
                 popLayer();
 
                 return 1;
             }
 
-            cout << "after pushing lock differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
-            }
-
-            cout << endl;
             if (localdSize > 1 && (perfect = (perfect && lock == p + 1 - localThird)))
             { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
                 int numNum = lock - (localdSize)-localThird - 1;
@@ -549,24 +508,22 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 {
                     cout << "going another layer deep " << i << " " << localdSize << " perfect: " << perfect << " actual " << lock << " v " << p + 1 - localThird << endl;
                     if (searchCovers(i, localdSize, perfect) || check())
-                    { //added check here in case none of the recursives have the time to check //TODO add back || check()
-                        cout << "we are big winners0 " << endl;
-                        popLayer();
+                    {               //added check here in case none of the recursives have the time to check //TODO add back || check()
+                        popLayer(); //this is to get rid of the recursive
+                        popLayer(); //this is to get rid of this functions
 
                         return 1;
                     }
                 }
 
-                cout << "we have returned to the parent with disapointment" << endl;
-                //shouldn't need any id reset because the preceeding layer handles
-
-                pop();
+                popLayer();
+                pop(); //gets rid of the lock
                 continue;
             }
 
             if (check())
             { //added check here in case none of the recursives have the time to check
-                cout << "someone else found something bitches" << endl;
+                cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " someone else found something" << endl;
                 popLayer();
 
                 return 1;
@@ -621,53 +578,27 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             differenceCover.push_back(localStart.front() - 1);
             updateTest(differenceCover.back());
 
+            //TODO update this to pass the entire vector because it is more percise and wont have a large impact
             vector<int> endCover = kthCombination(upperBound, sc, localdSize);
 
-            cout << "starting the process below the half " << differenceCover[differenceCover.size() - 2] << " " << dSize - localStart.size() << " " << endCover.front() + 1 << " " << localdSize << " " << lock << endl; //the localp should just be lock
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is: " << differenceCover.back() << " ending is: " << endCover.front() + 1;
+
+            for (int i = 0; i < differenceCover.size(); i++)
             {
-                cout << "localStart: ";
-                for (int i = 0; i < localStart.size(); i++)
-                {
-                    cout << localStart[i] << " ";
-                }
-
-                cout << endl;
-                cout << "differenceCover: ";
-                for (int i = 0; i < differenceCover.size(); i++)
-                {
-                    cout << differenceCover[i] << " ";
-                }
-
-                cout << endl;
+                cout << " " << differenceCover[i];
             }
+            cout << endl;
 
-            {
-                cout << "testCover: ";
-                for (int i = 0; i < p; i++)
-                {
-                    if (testCover[i] != 0)
-                    {
-                        cout << "(" << testCover[i] << "," << i << ")";
-                    }
-                }
-                cout << endl;
-            }
             if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localStart.size(), endCover.front() + 1))
             { //the lock becomes the localp
-                cout << "we found something bitches" << endl;
+                cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something" << endl;
 
                 popLayer();
 
                 return 1;
             }
 
-            cout << "before wipe out differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
-            }
-            cout << "above the half couldnot find anything so we are popping back lock:" << lock << " " << localThird << endl;
-            popLayer();
+            //popLayer(); I think this is extra
 
             //TODO this will need to pop all the way back to origin (double check) (might need to pop more off), but does it really matter? This branch would have been explored already
             //this is the pop back for any other number that needed to be filled
@@ -677,14 +608,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             }
 
             //pop(); //this is the popback for the lock
-
-            cout << "differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
-            }
-
-            cout << endl;
         }
     }
     else
@@ -694,11 +617,8 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         if (localp - localThird - 1 < localdSize)
         {
-            cout << "there is no hope for change above the half" << endl;
             return 0; //we return here because there is no hope for change
         }
-
-        cout << "1" << endl;
 
         unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize);
         unsigned long long startValue = 0;
@@ -706,8 +626,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         calcBounds(numNum, instanceStart, startValue);
         unsigned long long upperBound = startValue + instanceStart;
-
-        cout << "2" << endl;
 
         vector<int> sc;
         sc.reserve(localp - (localThird + 1));
@@ -719,113 +637,37 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         vector<int> localStart = kthCombination(startValue, sc, localdSize);
 
-        cout << "3" << endl;
-
-        differenceCover.push_back(localStart.front());
+        differenceCover.push_back(localStart.front() - 1); // the minus one is so that it is immidiately incremented to be normal
         updateTest(differenceCover.back());
-
-        cout << "4 " << upperBound << " " << sc.size() << " " << localdSize << endl;
 
         vector<int> endCover = kthCombination(upperBound, sc, localdSize);
 
-        cout << "5" << endl;
+        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is (+): " << differenceCover.back() << " ending is: " << endCover.front() + 1;
 
-        cout << "starting the process " << p << " " << dSize - localStart.size() << " " << endCover.front() + 1 << endl;
+        for (int i = 0; i < differenceCover.size(); i++)
         {
-            cout << "differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
-            }
-
-            cout << endl;
+            cout << " " << differenceCover[i];
         }
-
-        {
-            cout << "testCover: ";
-            for (int i = 0; i < p; i++)
-            {
-                if (testCover[i] != 0)
-                {
-                    cout << "(" << testCover[i] << "," << i << ")";
-                }
-            }
-            cout << endl;
-        }
+        cout << endl;
 
         //you need to adjust for having numbers at the end which affects the localp value max for each position
         if (generateCover(localp, dSize - localStart.size(), endCover.front() + 1))
         { //TODO make sure that setting the localp to p doesn't screw the recursion
             popLayer();
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something (above half)" << endl;
 
-            cout << "we found a cover!" << endl;
-            {
-                cout << "differenceCover: ";
-                for (int i = 0; i < differenceCover.size(); i++)
-                {
-                    cout << differenceCover[i] << " ";
-                }
-
-                cout << endl;
-            }
-
-            {
-                cout << "testCover: ";
-                for (int i = 0; i < p; i++)
-                {
-                    if (testCover[i] != 0)
-                    {
-                        cout << "(" << testCover[i] << "," << i << ")";
-                    }
-                }
-                cout << endl;
-            }
             return 1;
         }
 
-        popLayer();
-
-        cout << "above the half couldn't find anything so we are popping" << endl;
         while (differenceCover.size() > dSize - localStart.size())
         {
             pop();
         }
-
-        cout << "after popping from above the half: ";
-        cout << "differenceCover: ";
-        for (int i = 0; i < differenceCover.size(); i++)
-        {
-            cout << differenceCover[i] << " ";
-        }
-
-        cout << endl;
     }
 
     //this is the popback for the starting third
     pop();
-
-    cout << "our final results were" << endl;
-    {
-        cout << "differenceCover: ";
-        for (int i = 0; i < differenceCover.size(); i++)
-        {
-            cout << differenceCover[i] << " ";
-        }
-
-        cout << endl;
-    }
-
-    {
-        cout << "testCover: ";
-        for (int i = 0; i < p; i++)
-        {
-            if (testCover[i] != 0)
-            {
-                cout << "(" << testCover[i] << "," << i << ")";
-            }
-        }
-        cout << endl;
-    }
+    popLayer();
 
     return 0;
 }
@@ -841,8 +683,7 @@ int generateCover(int localp, int minSize, int stop)
 {
     while (differenceCover.size() < dSize)
     {
-        int startSize = differenceCover.size();
-        cout << "Generating Cover: ";
+        /*cout << "Generating Cover: ";
         {
             cout << "differenceCover: ";
             for (int i = 0; i < differenceCover.size(); i++)
@@ -851,32 +692,10 @@ int generateCover(int localp, int minSize, int stop)
             }
 
             cout << endl;
-        }
+        }*/
 
         if (differenceCover.size() <= minSize)
         {
-            cout << "returning from the min size on start " << minSize << " " << differenceCover.size() << endl;
-            {
-                cout << "differenceCover: ";
-                for (int i = 0; i < differenceCover.size(); i++)
-                {
-                    cout << differenceCover[i] << " ";
-                }
-
-                cout << endl;
-            }
-
-            {
-                cout << "testCover: ";
-                for (int i = 0; i < p; i++)
-                {
-                    if (testCover[i] != 0)
-                    {
-                        cout << "(" << testCover[i] << "," << i << ")";
-                    }
-                }
-                cout << endl;
-            }
             return 0;
         }
 
@@ -885,7 +704,6 @@ int generateCover(int localp, int minSize, int stop)
         //this is the part that fills the cover because it doesn't break after pushing it keeps boing getting higher and higher
         for (int i = 1; pval + i <= localp - (dSize - (differenceCover.size() + 1)) - 1; i++)
         { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
-            //cout << "that pval upperbound is "<< localp - dSize - int(differenceCover.size()) - 1 << " " << localp << " " << dSize << " " << differenceCover.size() << endl;
             if (push(pval + i))
             { //this is to make sure that this function does not exit before filling everything
                 if (differenceCover.size() == dSize)
@@ -894,22 +712,10 @@ int generateCover(int localp, int minSize, int stop)
                 }
                 else if (differenceCover.size() == minSize + 1 && differenceCover.back() == stop)
                 {
-                    cout << "stop condition met" << endl;
                     return 0;
                 }
             }
         }
-
-        //this fixed something that made it go to 0 2
-        /*if(startSize == differenceCover.size()) {
-        cout << "we couldn't find a number to push" << endl;
-
-        if(differenceCover.size()-1 < minSize) { //need sto be less than because you add one back
-            pop();
-        } else {
-            return 0;
-        }
-    }*/
 
         int lastPop = 0;
         //we can't pop off the last number because it has to increment to build back up again
@@ -917,40 +723,16 @@ int generateCover(int localp, int minSize, int stop)
         { //the one before the edit space
             if (differenceCover.size() - 1 >= minSize)
             { //need sto be less than because you add one back
-
                 lastPop = pop();
             }
             else
             {
-                cout << "returning within the while" << endl;
                 return 0;
             }
         }
 
         if (differenceCover.size() == minSize)
         {
-            cout << "returning from the min size" << endl;
-            {
-                cout << "differenceCover: ";
-                for (int i = 0; i < differenceCover.size(); i++)
-                {
-                    cout << differenceCover[i] << " ";
-                }
-
-                cout << endl;
-            }
-
-            {
-                cout << "testCover: ";
-                for (int i = 0; i < p; i++)
-                {
-                    if (testCover[i] != 0)
-                    {
-                        cout << "(" << testCover[i] << "," << i << ")";
-                    }
-                }
-                cout << endl;
-            }
             return 0;
         }
 
@@ -959,7 +741,6 @@ int generateCover(int localp, int minSize, int stop)
             push(lastPop); //there shouldn't be an issue with pushing this again because it was certified once and that is how it got onto the stack
         }
     }
-    cout << "we got to the end" << endl;
     return 1;
 }
 
