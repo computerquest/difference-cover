@@ -598,7 +598,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 return 1;
             }
 
-            //popLayer(); I think this is extra
+            popLayer(); 
 
             //TODO this will need to pop all the way back to origin (double check) (might need to pop more off), but does it really matter? This branch would have been explored already
             //this is the pop back for any other number that needed to be filled
