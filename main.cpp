@@ -21,7 +21,7 @@ using namespace std;
 int p;
 int dSize;
 vector<int> differenceCover; //this is a vector but it acts as a stack
-int *testCover;
+vector<int> testCover;
 string pFile;
 string globalFile;
 
@@ -94,11 +94,8 @@ void calcBounds(unsigned long long numNum, unsigned long long &iters, unsigned l
         localId = preId / numNum;
     }
 
-    cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " before" << endl;
-    //TODO make sure this isn't buggy af
     groupNodes.push_back(localNodes);
     groupid.push_back(localId);
-    cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " after" << endl;
 }
 
 void popLayer()
@@ -256,7 +253,7 @@ int main(int argc, char *argv[])
     groupNodes.push_back(nn);
     groupid.push_back(id);
 
-    testCover = new int[startValue + numberToCompute];
+    testCover = vector<int>(startValue + numberToCompute-1, 0);
 
     while (p < startValue + numberToCompute)
     {
@@ -288,8 +285,6 @@ int main(int argc, char *argv[])
     MPI_Finalize();
 
     cout << "mpi was finalized" << endl;
-
-    delete[] testCover;
 
     return 0;
 } // end main
