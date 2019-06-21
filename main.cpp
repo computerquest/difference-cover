@@ -547,7 +547,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
             }
 
-            unsigned long long numNum = nChoosek(sc.size(), localdSize);
+            /*unsigned long long numNum = nChoosek(sc.size(), localdSize);
             unsigned long long startValue = 0;
             unsigned long long instanceStart = 0;
 
@@ -557,7 +557,20 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 continue;
             }
 
+            calcBounds(numNum, instanceStart, startValue);*/
+
+            unsigned long long numNum = differenceCover.back()-localdSize-differenceCover[differenceCover.size()-2]-1;
+            unsigned long long startValue = differenceCover[differenceCover.size()-2]+1;
+            unsigned long long instanceStart = 0;
+
+            if (numNum == 0)
+            {
+                pop();
+                continue;
+            }
+
             calcBounds(numNum, instanceStart, startValue);
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " " << numNum << " " << instanceStart << " " << startValue << endl;
             unsigned long long upperBound = instanceStart + startValue;
 
             //TODO add the reassignments for the check (might need to get rid of the check and do manually for these)
@@ -568,15 +581,15 @@ int searchCovers(int localThird, int localdSize, bool perfect)
              * it would also probably be faster
              */
             //this needs to populate differenceCover the rest of the way with values
-            vector<int> localStart = kthCombination(startValue, sc, localdSize);
+            //vector<int> localStart = kthCombination(startValue, sc, localdSize);
 
-            differenceCover.push_back(localStart.front() - 1);
+            differenceCover.push_back(startValue-1);
             updateTest(differenceCover.back());
 
             //TODO update this to pass the entire vector because it is more percise and wont have a large impact
-            vector<int> endCover = kthCombination(upperBound, sc, localdSize);
+            //vector<int> endCover = kthCombination(upperBound, sc, localdSize);
 
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is: " << differenceCover.back() << " ending is: " << endCover.front() + 1;
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is: " << differenceCover.back()+1 << " ending is: " <<  upperBound << " | ";
 
             for (int i = 0; i < differenceCover.size(); i++)
             {
@@ -584,7 +597,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             }
             cout << endl;
 
-            if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localStart.size(), endCover.front() + 1))
+            if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localdSize, upperBound))
             { //the lock becomes the localp
                 cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something" << endl;
 
@@ -597,7 +610,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
             //TODO this will need to pop all the way back to origin (double check) (might need to pop more off), but does it really matter? This branch would have been explored already
             //this is the pop back for any other number that needed to be filled
-            while (differenceCover.size() > dSize - localStart.size() - 1)
+            while (differenceCover.size() > dSize - localdSize - 1)
             { //teh minux 1 is to get rid of the lock
                 pop();
             }
@@ -615,14 +628,26 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             return 0; //we return here because there is no hope for change
         }
 
-        unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize);
+        /*unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize);
         unsigned long long startValue = 0;
         unsigned long long instanceStart = 0;
 
+        calcBounds(numNum, instanceStart, startValue);*/
+        unsigned long long numNum = localp - localdSize-differenceCover.back()-1;
+        unsigned long long startValue = differenceCover.back()+1; //needs to be the same so it can increment to +1
+        unsigned long long instanceStart = 0;
+
+        if(numNum == 0) {
+            pop();
+            return 0;
+        }
+
         calcBounds(numNum, instanceStart, startValue);
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " " << numNum << " " << instanceStart << " " << startValue << endl;
+
         unsigned long long upperBound = startValue + instanceStart;
 
-        vector<int> sc;
+        /*vector<int> sc;
         sc.reserve(localp - (localThird + 1));
 
         for (int i = localThird + 1; i < localp; i++)
@@ -630,14 +655,14 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             sc.push_back(i);
         }
 
-        vector<int> localStart = kthCombination(startValue, sc, localdSize);
+        vector<int> localStart = kthCombination(startValue, sc, localdSize);*/
 
-        differenceCover.push_back(localStart.front() - 1); // the minus one is so that it is immidiately incremented to be normal
+        differenceCover.push_back(startValue-1); // the minus one is so that it is immidiately incremented to be normal
         updateTest(differenceCover.back());
 
-        vector<int> endCover = kthCombination(upperBound, sc, localdSize);
+        //vector<int> endCover = kthCombination(upperBound, sc, localdSize);
 
-        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is (+): " << differenceCover.back() << " ending is: " << endCover.front() + 1;
+        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is (+): " << differenceCover.back()+1 << " ending is: " << upperBound << " | ";
 
         for (int i = 0; i < differenceCover.size(); i++)
         {
@@ -646,7 +671,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         cout << endl;
 
         //you need to adjust for having numbers at the end which affects the localp value max for each position
-        if (generateCover(localp, dSize - localStart.size(), endCover.front() + 1))
+        if (generateCover(localp, dSize - localdSize, upperBound))
         { //TODO make sure that setting the localp to p doesn't screw the recursion
             popLayer();
             cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something (above half)" << endl;
@@ -654,7 +679,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             return 1;
         }
 
-        while (differenceCover.size() > dSize - localStart.size())
+        while (differenceCover.size() > dSize - localdSize)
         {
             pop();
         }
