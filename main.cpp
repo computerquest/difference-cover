@@ -402,20 +402,31 @@ void startSearch()
                 indivOut.flush();
                 indivOut.close();
 
-                //this is the all together write
-                ofstream out;
-                out.open(globalFile.c_str(), ios::app);
-                out << p;
-                out << "    " << differenceCover.size();
-                out << "            ";
-                for (int i = 0; i < differenceCover.size() - 1; i++)
                 {
-                    out << differenceCover[i] << "   ";
+                    //this is the all together write
+                    ofstream out;
+                    out.open(globalFile.c_str(), ios::app);
+                    out << p;
+                    out << "    " << differenceCover.size();
+                    out << "            ";
+
+                    {
+                        int lastMin = -1;
+                        for(int x = 0; x < differenceCover.size(); x++) {
+                            int min = 100000;
+                            for (int i = 0; i < differenceCover.size(); i++) {
+                                if(min > differenceCover[i] && lastMin < differenceCover[i]) {
+                                    min = differenceCover[i];
+                                }
+                            }
+                            lastMin = min;
+                            out << min << "   ";
+                        }
+                    }
+                    out << endl;
+                    out.flush();
+                    out.close();
                 }
-                out << differenceCover.back();
-                out << endl;
-                out.flush();
-                out.close();
             }
 
             cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is done checking startingThird: " << i << endl;
@@ -459,7 +470,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
     //TODO any returns need to have difference cover and the mpi id stuff pop before hand
     if (localThird < int((p + 1) / 2))
     { //this is for below the half //TODO have ending function?
-        cout << "we are below the half" << endl;
         //this is all init setup for splitting
         unsigned long long startingGlobalLock = p + 1 - localThird;
         unsigned long long globalIters = 0;
@@ -471,7 +481,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         localdSize -= 2;
 
-        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting lock is: " << startingGlobalLock << " globalUpperBound is: " << globalUpperBound << endl;
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++)
         {
             if (!push(lock))
@@ -531,34 +540,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 localStartLock = int(p / 2) + 1;
             }
 
-            //calcs all this based on the segment that has yet to be determined for just a plugin (not bad)
-            vector<int> sc; //this is all the possible numbers between the startingThird and the lock
-            sc.reserve(lock - localStartLock);
-
-            for (int i = localStartLock; i < lock; i++)
-            {
-                sc.push_back(i);
-            }
-
-            //this condition asks if there are more spots than numbers to choose from
-            if (sc.size() < localdSize)
-            {
-                pop();
-                continue; //this needs to be continue because lock icreases each loop so this condition might not be true next time around
-            }
-
-            /*unsigned long long numNum = nChoosek(sc.size(), localdSize);
-            unsigned long long startValue = 0;
-            unsigned long long instanceStart = 0;
-
-            if (numNum == 0)
-            {
-                pop();
-                continue;
-            }
-
-            calcBounds(numNum, instanceStart, startValue);*/
-
             unsigned long long numNum = differenceCover.back()-localdSize-differenceCover[differenceCover.size()-2]-1;
             unsigned long long startValue = differenceCover[differenceCover.size()-2]+1;
             unsigned long long instanceStart = 0;
@@ -570,32 +551,10 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             }
 
             calcBounds(numNum, instanceStart, startValue);
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " " << numNum << " " << instanceStart << " " << startValue << endl;
             unsigned long long upperBound = instanceStart + startValue;
-
-            //TODO add the reassignments for the check (might need to get rid of the check and do manually for these)
-            /*
-             * thinking that you could use generate cover after manually adding one less than the first value and updating test because it will immidiately try out you number by adding one
-             * then it will procees to go through the rest of the checks
-             * this wouldn't allow the accuracy of the kth combo but it would make stuff a lot easier at the cost of a couple hundred or thousand of covers
-             * it would also probably be faster
-             */
-            //this needs to populate differenceCover the rest of the way with values
-            //vector<int> localStart = kthCombination(startValue, sc, localdSize);
 
             differenceCover.push_back(startValue-1);
             updateTest(differenceCover.back());
-
-            //TODO update this to pass the entire vector because it is more percise and wont have a large impact
-            //vector<int> endCover = kthCombination(upperBound, sc, localdSize);
-
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is: " << differenceCover.back()+1 << " ending is: " <<  upperBound << " | ";
-
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << " " << differenceCover[i];
-            }
-            cout << endl;
 
             if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localdSize, upperBound))
             { //the lock becomes the localp
@@ -620,7 +579,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
     }
     else
     { //this is for half or above
-        cout << "we are above the half" << endl;
         localdSize--;
 
         if (localp - localThird - 1 < localdSize)
@@ -628,11 +586,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             return 0; //we return here because there is no hope for change
         }
 
-        /*unsigned long long numNum = nChoosek(localp - localThird - 1, localdSize);
-        unsigned long long startValue = 0;
-        unsigned long long instanceStart = 0;
-
-        calcBounds(numNum, instanceStart, startValue);*/
         unsigned long long numNum = localp - localdSize-differenceCover.back()-1;
         unsigned long long startValue = differenceCover.back()+1; //needs to be the same so it can increment to +1
         unsigned long long instanceStart = 0;
@@ -643,38 +596,16 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         }
 
         calcBounds(numNum, instanceStart, startValue);
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " " << numNum << " " << instanceStart << " " << startValue << endl;
 
         unsigned long long upperBound = startValue + instanceStart;
 
-        /*vector<int> sc;
-        sc.reserve(localp - (localThird + 1));
-
-        for (int i = localThird + 1; i < localp; i++)
-        {
-            sc.push_back(i);
-        }
-
-        vector<int> localStart = kthCombination(startValue, sc, localdSize);*/
-
         differenceCover.push_back(startValue-1); // the minus one is so that it is immidiately incremented to be normal
         updateTest(differenceCover.back());
-
-        //vector<int> endCover = kthCombination(upperBound, sc, localdSize);
-
-        cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " starting is (+): " << differenceCover.back()+1 << " ending is: " << upperBound << " | ";
-
-        for (int i = 0; i < differenceCover.size(); i++)
-        {
-            cout << " " << differenceCover[i];
-        }
-        cout << endl;
 
         //you need to adjust for having numbers at the end which affects the localp value max for each position
         if (generateCover(localp, dSize - localdSize, upperBound))
         { //TODO make sure that setting the localp to p doesn't screw the recursion
             popLayer();
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something (above half)" << endl;
 
             return 1;
         }
@@ -703,18 +634,7 @@ int generateCover(int localp, int minSize, int stop)
 {
     while (differenceCover.size() < dSize)
     {
-        /*cout << "Generating Cover: ";
-        {
-            cout << "differenceCover: ";
-            for (int i = 0; i < differenceCover.size(); i++)
-            {
-                cout << differenceCover[i] << " ";
-            }
-
-            cout << endl;
-        }*/
-
-        if (differenceCover.size() <= minSize)
+         if (differenceCover.size() <= minSize)
         {
             return 0;
         }
@@ -726,7 +646,7 @@ int generateCover(int localp, int minSize, int stop)
         { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
             if (push(pval + i))
             { //this is to make sure that this function does not exit before filling everything
-                if (differenceCover.size() == dSize)
+                if (differenceCover.size() == dSize) //TODO remove this
                 {
                     return 1;
                 }
@@ -812,26 +732,7 @@ void undoTest(int num)
 int isCover()
 {
     int dif = dSize - differenceCover.size();
-    //TODO make sure this actually says if you got a whole cover
-    /*{
-        cout << "differenceCover: ";
-        for (int i = 0; i < differenceCover.size(); i++) {
-            cout << differenceCover[i] << " ";
-        }
-
-        cout << endl;
-    }
-
-    {
-        cout << "testCover: ";
-        for (int i = 0; i < p; i++) {
-            if (testCover[i] != 0) {
-                cout << "(" << testCover[i] << "," << i << ")";
-            }
-        }
-        cout << endl;
-    }*/
-
+ 
     //TODO this might still bewrong
     //got rid of the -1 for p because you get zero for free in the count so you would get the discount twice with the -1
     //cout << "dif: " << dif << " need: " << (p - 1) - (pow(dif, 2) + dif + dif*2*(differenceCover.size()-1)) << " testSize: " << testSize() << " " << differenceCover.size() << endl;
@@ -840,40 +741,6 @@ int isCover()
         return 1;
     }
 
-    /*cout << "this cover isn't possible "  << " needed: " << (p - 1) - (pow(dif, 2) + dif + dif*2*(differenceCover.size()-1)) << " had: " << testSize() << " other: " << dif << endl;
-    {
-        cout << "differenceCover: ";
-        int lastMin = -1;
-        for(int x = 0; x < differenceCover.size(); x++) {
-            int min = 100000;
-            for (int i = 0; i < differenceCover.size(); i++) {
-                if(min > differenceCover[i] && lastMin < differenceCover[i]) {
-                    min = differenceCover[i];
-                }
-                //cout << differenceCover[i] << " ";
-            }
-
-            lastMin = min;
-            cout << min << " ";
-        }
-
-        cout << "    |     ";
-        for(int i = 0; i < differenceCover.size(); i++) {
-            cout << differenceCover[i] << " ";
-        }
-
-        cout << endl;
-    }*/
-
-    /*{
-        cout << "testCover: ";
-        for (int i = 0; i < p; i++) {
-            if (testCover[i] != 0) {
-                cout << "(" << testCover[i] << "," << i << ")";
-            }
-        }
-        cout << endl;
-    }*/
     return 0;
 }
 
