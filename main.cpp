@@ -282,9 +282,9 @@ int main(int argc, char *argv[])
 
     cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is finished." << endl;
 
-    MPI_Finalize();
-
     cout << "mpi was finalized" << endl;
+
+    MPI_Finalize();
 
     return 0;
 } // end main
@@ -363,8 +363,13 @@ void startSearch()
                 myfile.close();
             }
 
-            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the new starting third is " << i << endl;
+            cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the new starting third is " << i << " | ";
 
+            for (int x = 0; x < differenceCover.size(); x++)
+                {
+                    cout << differenceCover[x] << " ";
+                }
+                cout << endl;
             if (searchCovers(i, dSize - 2, true) && testSize() == p)
             {
                 cout << "winning cover is: ";
@@ -433,7 +438,8 @@ void startSearch()
 
             cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is waiting for the rest" << endl;
             MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
-            if (check())
+            //todo add back
+            /*if (check())
             {
                 cout << "we are returning: " << endl;
 
@@ -444,9 +450,21 @@ void startSearch()
                 cout << endl;
 
                 return;
-            }
+            }*/
         }
 
+        if (check())
+        {
+            cout << "we are retur4ning : " << endl;
+
+            for (int x = 0; x < differenceCover.size(); x++)
+            {
+                cout << differenceCover[x] << " ";
+            }
+            cout << endl;
+
+            return;
+        }
         startingThird = int((p + 1) / 2) + 1;
         dSize++;
     }
@@ -475,6 +493,10 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         unsigned long long globalIters = 0;
         int numGlobalNum = localp - startingGlobalLock;
 
+        if(numGlobalNum == 0) {
+            return 0;
+        }
+        
         calcBounds(numGlobalNum, globalIters, startingGlobalLock);
 
         unsigned long long globalUpperBound = startingGlobalLock + globalIters;
@@ -491,7 +513,47 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             {
                 popLayer();
 
-                return 1;
+                //this is the individual write
+                ofstream indivOut;
+                indivOut.open((pFile + ".txt").c_str(), ios::trunc);
+                for (int i = 0; i < differenceCover.size() - 1; i++)
+                {
+                    indivOut << differenceCover[i] << "   ";
+                }
+                indivOut << differenceCover.back();
+                indivOut << endl;
+                indivOut.flush();
+                indivOut.close();
+
+                {
+                    //this is the all together write
+                    ofstream out;
+                    out.open(globalFile.c_str(), ios::app);
+                    out << p;
+                    out << "    " << differenceCover.size();
+                    out << "            ";
+
+                    {
+                        int lastMin = -1;
+                        for(int x = 0; x < differenceCover.size(); x++) {
+                            int min = 100000;
+                            for (int i = 0; i < differenceCover.size(); i++) {
+                                if(min > differenceCover[i] && lastMin < differenceCover[i]) {
+                                    min = differenceCover[i];
+                                }
+                            }
+                            lastMin = min;
+                            out << min << "   ";
+                        }
+                    }
+                    out << endl;
+                    out.flush();
+                    out.close();
+                }
+
+            pop();
+            pop();
+                return 0;
             }
 
             if (localdSize > 1 && (perfect = (perfect && lock == p + 1 - localThird)))
@@ -510,12 +572,11 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
                 for (int i = startingLock + iters; i >= startingLock; i--)
                 {
-                    cout << "going another layer deep " << i << " " << localdSize << " perfect: " << perfect << " actual " << lock << " v " << p + 1 - localThird << endl;
-                    if (searchCovers(i, localdSize, perfect) || check())
+                    if (searchCovers(i, localdSize, perfect)) //TODO add back || check())
                     {               //added check here in case none of the recursives have the time to check //TODO add back || check()
                         popLayer(); //this is to get rid of the recursive
                         popLayer(); //this is to get rid of this functions
-
+                        cout << "booooom" << endl;
                         return 1;
                     }
                 }
@@ -525,13 +586,14 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 continue;
             }
 
-            if (check())
+            //TODO add back
+            /*if (check())
             { //added check here in case none of the recursives have the time to check
                 cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " someone else found something" << endl;
                 popLayer();
 
                 return 1;
-            }
+            }*/
 
             int localStartLock = localThird + 1;
 
@@ -540,7 +602,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 localStartLock = int(p / 2) + 1;
             }
 
-            unsigned long long numNum = differenceCover.back()-localdSize-differenceCover[differenceCover.size()-2]-1;
+            unsigned long long numNum = differenceCover.back()-localdSize-differenceCover[differenceCover.size()-2];//-1;
             unsigned long long startValue = differenceCover[differenceCover.size()-2]+1;
             unsigned long long instanceStart = 0;
 
@@ -556,13 +618,25 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             differenceCover.push_back(startValue-1);
             updateTest(differenceCover.back());
 
+            cout << "Thread(-): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << startValue << " end: " << upperBound <<" lower: " << numNum << " " << instanceStart << " " << startValue;
+             {
+                    cout << " | ";
+                    for (int i = 0; i < differenceCover.size(); i++)
+                    {
+                        cout << differenceCover[i] << " ";
+                    }
+
+                    cout << endl;
+                }
+            
+            //TODO add back
             if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localdSize, upperBound))
             { //the lock becomes the localp
                 cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something" << endl;
 
-                popLayer();
+                //popLayer();
 
-                return 1;
+                //return 1;
             }
 
             popLayer(); 
@@ -600,14 +674,24 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         unsigned long long upperBound = startValue + instanceStart;
 
         differenceCover.push_back(startValue-1); // the minus one is so that it is immidiately incremented to be normal
-        updateTest(differenceCover.back());
-
+            updateTest(differenceCover.back());
+        //TODO add back
         //you need to adjust for having numbers at the end which affects the localp value max for each position
+            cout << "Thread(+): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << startValue << " end: " << upperBound <<" lower: " << numNum << " " << instanceStart << " " << startValue << endl;
+ {
+                    cout << " | ";
+                    for (int i = 0; i < differenceCover.size(); i++)
+                    {
+                        cout << differenceCover[i] << " ";
+                    }
+
+                    cout << endl;
+                }
         if (generateCover(localp, dSize - localdSize, upperBound))
         { //TODO make sure that setting the localp to p doesn't screw the recursion
-            popLayer();
+            //popLayer();
 
-            return 1;
+            //return 1;
         }
 
         while (differenceCover.size() > dSize - localdSize)
@@ -632,7 +716,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
  */
 int generateCover(int localp, int minSize, int stop)
 {
-    while (differenceCover.size() < dSize)
+    do
     {
          if (differenceCover.size() <= minSize)
         {
@@ -648,7 +732,47 @@ int generateCover(int localp, int minSize, int stop)
             { //this is to make sure that this function does not exit before filling everything
                 if (differenceCover.size() == dSize) //TODO remove this
                 {
-                    return 1;
+                        //this is the individual write
+                    ofstream indivOut;
+                    indivOut.open((pFile + ".txt").c_str(), ios::trunc);
+                    for (int i = 0; i < differenceCover.size() - 1; i++)
+                    {
+                        indivOut << differenceCover[i] << "   ";
+                    }
+                    indivOut << differenceCover.back();
+                    indivOut << endl;
+                    indivOut.flush();
+                    indivOut.close();
+
+                    {
+                        //this is the all together write
+                        ofstream out;
+                        out.open(globalFile.c_str(), ios::app);
+                        out << p;
+                        out << "    " << differenceCover.size();
+                        out << "            ";
+
+                        {
+                            int lastMin = -1;
+                            for(int x = 0; x < differenceCover.size(); x++) {
+                                int min = 100000;
+                                for (int i = 0; i < differenceCover.size(); i++) {
+                                    if(min > differenceCover[i] && lastMin < differenceCover[i]) {
+                                        min = differenceCover[i];
+                                    }
+                                }
+                                lastMin = min;
+                                out << min << "   ";
+                            }
+                        }
+                        out << endl;
+                        out.flush();
+                        out.close();
+                    }
+
+                    pop();
+
+                    //return 1;
                 }
                 else if (differenceCover.size() == minSize + 1 && differenceCover.back() == stop)
                 {
@@ -680,7 +804,8 @@ int generateCover(int localp, int minSize, int stop)
         {
             push(lastPop); //there shouldn't be an issue with pushing this again because it was certified once and that is how it got onto the stack
         }
-    }
+    } while (differenceCover.size() < dSize);
+
     return 1;
 }
 
