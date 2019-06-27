@@ -14,6 +14,8 @@
 #include <mpi.h>
 #include <iomanip>
 #include <math.h>
+#include <stdlib.h>
+
 
 using namespace std;
 
@@ -240,7 +242,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    int startValue = atoi(argv[2]);
+    int startValue =  atoi(argv[2]);
     p = startValue;
     int numberToCompute = 10;
 
@@ -344,7 +346,7 @@ void startSearch()
 
         cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " read " << dSize << " " << startingThird << endl;
     }
-
+    
     push(0);
     push(1);
 
@@ -395,8 +397,9 @@ void startSearch()
                     cout << endl;
                 }
 
+                //todo add back
                 //this is the individual write
-                ofstream indivOut;
+                /*ofstream indivOut;
                 indivOut.open((pFile + ".txt").c_str(), ios::trunc);
                 for (int i = 0; i < differenceCover.size() - 1; i++)
                 {
@@ -431,7 +434,7 @@ void startSearch()
                     out << endl;
                     out.flush();
                     out.close();
-                }
+                }*/
             }
 
             cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is done checking startingThird: " << i << endl;
@@ -483,6 +486,36 @@ int searchCovers(int localThird, int localdSize, bool perfect)
     if (!push(localThird))
     {
         return 0;
+    } else if(dSize == differenceCover.size()) {
+           {
+                    //this is the all together write
+                    ofstream out;
+                    out.open(globalFile.c_str(), ios::app);
+                    out << p;
+                    out << "    " << differenceCover.size();
+                    out << "            ";
+
+                    {
+                        int lastMin = -1;
+                        for(int x = 0; x < differenceCover.size(); x++) {
+                            int min = 100000;
+                            for (int i = 0; i < differenceCover.size(); i++) {
+                                if(min > differenceCover[i] && lastMin < differenceCover[i]) {
+                                    min = differenceCover[i];
+                                }
+                            }
+                            lastMin = min;
+                            out << min << "   ";
+                        }
+                    }
+                    out << endl;
+                    out.flush();
+                    out.close();
+                }
+
+                //todo remove
+                pop();
+        return 0; //todo change this to return 1;
     }
 
     //TODO any returns need to have difference cover and the mpi id stuff pop before hand
@@ -551,13 +584,14 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                     out.close();
                 }
 
-            pop();
-            pop();
+                pop();
+                pop();
                 return 0;
             }
-
-            if (localdSize > 1 && (perfect = (perfect && lock == p + 1 - localThird)))
+        //localdSize > 1 &&
+            if (localdSize > 1 & (perfect = (perfect && lock == p + 1 - localThird)))
             { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
+                //cout << "going down" << endl;
                 int numNum = lock - (localdSize)-localThird - 1;
                 unsigned long long startingLock = localThird + 1;
                 unsigned long long iters = 0;
@@ -569,6 +603,8 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 }
 
                 calcBounds(numNum, iters, startingLock);
+
+                //cout << "Thread(/): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " lock: " << lock << " goal: " << p + 1 - localThird <<" locald: " << localdSize << " startingThird " << localThird << " start: " << startingLock + iters << " end: " << startingLock <<" lower: " << numNum << endl;//" " << instanceStart << " " << startValue;
 
                 for (int i = startingLock + iters; i >= startingLock; i--)
                 {
@@ -595,15 +631,18 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 return 1;
             }*/
 
-            int localStartLock = localThird + 1;
+            int localStartLock = differenceCover[differenceCover.size()-2];
+
+            cout << "Special Routing: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " perfect: " << perfect << " lock: " << lock << " locald: " << localdSize << " startingThird " << localThird << endl;
 
             if (perfect && localThird < int(p / 2) + 1 && localdSize == 1)
             {
+                cout << "boooom special starting lock" << endl;
                 localStartLock = int(p / 2) + 1;
             }
 
-            unsigned long long numNum = differenceCover.back()-localdSize-differenceCover[differenceCover.size()-2];//-1;
-            unsigned long long startValue = differenceCover[differenceCover.size()-2]+1;
+            unsigned long long numNum = differenceCover.back()-localdSize-localStartLock;//differenceCover[differenceCover.size()-2];//-1;
+            unsigned long long startValue = localStartLock; //differenceCover[differenceCover.size()-2]+1;
             unsigned long long instanceStart = 0;
 
             if (numNum == 0)
@@ -660,7 +699,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             return 0; //we return here because there is no hope for change
         }
 
-        unsigned long long numNum = localp - localdSize-differenceCover.back()-1;
+        unsigned long long numNum = localp - localdSize-differenceCover.back();//-1;
         unsigned long long startValue = differenceCover.back()+1; //needs to be the same so it can increment to +1
         unsigned long long instanceStart = 0;
 
@@ -678,15 +717,15 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         //TODO add back
         //you need to adjust for having numbers at the end which affects the localp value max for each position
             cout << "Thread(+): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << startValue << " end: " << upperBound <<" lower: " << numNum << " " << instanceStart << " " << startValue << endl;
- {
-                    cout << " | ";
-                    for (int i = 0; i < differenceCover.size(); i++)
-                    {
-                        cout << differenceCover[i] << " ";
-                    }
+        {
+            cout << " | ";
+            for (int i = 0; i < differenceCover.size(); i++)
+            {
+                cout << differenceCover[i] << " ";
+            }
 
-                    cout << endl;
-                }
+            cout << endl;
+        }
         if (generateCover(localp, dSize - localdSize, upperBound))
         { //TODO make sure that setting the localp to p doesn't screw the recursion
             //popLayer();
