@@ -515,7 +515,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         unsigned long long globalIters = 0;
         int numGlobalNum = localp - startingGlobalLock;
 
-        if (numGlobalNum == 0)
+        if (numGlobalNum <= 0)
         {
             return 0;
         }
@@ -588,7 +588,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 unsigned long long startingLock = localThird + 1;
                 unsigned long long iters = 0;
 
-                if (numNum == 0)
+                if (numNum <= 0)
                 {
                     pop();
                     continue;
@@ -596,7 +596,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
                 calcBounds(numNum, iters, startingLock);
 
-                for (int i = startingLock + iters; i >= startingLock; i--)
+                for (unsigned long long i = startingLock + iters; i >= startingLock; i--)
                 {
                     if (searchCovers(i, localdSize, perfect)) //TODO add back || check())
                     {                                         //added check here in case none of the recursives have the time to check //TODO add back || check()
@@ -632,7 +632,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             unsigned long long startValue = localStartLock;                                   //differenceCover[differenceCover.size()-2]+1;
             unsigned long long instanceStart = 0;
 
-            if (numNum == 0)
+            if (numNum <= 0)
             {
                 pop();
                 continue;
@@ -679,7 +679,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         unsigned long long startValue = differenceCover.back() + 1;               //needs to be the same so it can increment to +1
         unsigned long long instanceStart = 0;
 
-        if (numNum == 0)
+        if (numNum <= 0)
         {
             pop();
             return 0;
@@ -689,6 +689,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         unsigned long long upperBound = startValue + instanceStart;
 
+        //TODO switch order
         differenceCover.push_back(startValue - 1); // the minus one is so that it is immidiately incremented to be normal
         updateTest(differenceCover.back());
         //TODO add back
@@ -833,8 +834,8 @@ void updateTest(int num)
             q = num - differenceCover[i];
         }
 
-        testCover[q]++;
-        testCover[p - q]++;
+        testCover.at(q)++;
+        testCover.at(p - q)++;
     }
 }
 
@@ -853,8 +854,8 @@ void undoTest(int num)
             q = num - differenceCover[i];
         }
 
-        testCover[q]--;
-        testCover[p - q]--;
+        testCover.at(q)--;
+        testCover.at(p - q)--;
     }
 }
 
