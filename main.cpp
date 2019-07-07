@@ -509,6 +509,8 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         return 0; //todo change this to return 1;
     }
 
+    localdSize--;
+
     //TODO any returns need to have difference cover and the mpi id stuff pop before hand
     if (localThird < int((p + 1) / 2))
     { //this is for below the half //TODO have ending function?
@@ -526,7 +528,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         unsigned long long globalUpperBound = startingGlobalLock + globalIters;
 
-        localdSize -= 2;
+        localdSize--;
 
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++)
         {
@@ -630,88 +632,64 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 localStartLock = int(p / 2) + 1;
             }
 
-            unsigned long long numNum = differenceCover.back() - localdSize - localStartLock; //differenceCover[differenceCover.size()-2];//-1;
-            unsigned long long startValue = localStartLock;                                   //differenceCover[differenceCover.size()-2]+1;
-            unsigned long long instanceStart = 0;
-
-            if (numNum <= 0)
-            {
-                pop();
-                continue;
-            }
-
-            calcBounds(numNum, instanceStart, startValue);
-            unsigned long long upperBound = instanceStart + startValue;
-
-            differenceCover.push_back(startValue - 1);
-            updateTest(differenceCover.back());
-
-            //TODO add back
-            if (generateCover(differenceCover[differenceCover.size() - 2], dSize - localdSize, upperBound))
-            { //the lock becomes the localp
-                cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " we found something" << endl;
-
-                //popLayer();
-
-                //return 1;
-            }
-
-            popLayer();
-
-            //TODO this will need to pop all the way back to origin (double check) (might need to pop more off), but does it really matter? This branch would have been explored already
-            //this is the pop back for any other number that needed to be filled
-            while (differenceCover.size() > dSize - localdSize - 1)
-            { //teh minux 1 is to get rid of the lock
-                pop();
-            }
-
-            //pop(); //this is the popback for the lock
+            exhaustiveSearch(localStartLock - 1, differenceCover.back(), localdSize);
+            
+            pop(); //this is the popback for the lock
         }
+
+        popLayer();
     }
     else
     { //this is for half or above
-        localdSize--;
-
-        if (localp - localThird - 1 < localdSize)
-        {
-            return 0; //we return here because there is no hope for change
-        }
-
-        unsigned long long numNum = localp - localdSize - differenceCover.back(); //-1;
-        unsigned long long startValue = differenceCover.back() + 1;               //needs to be the same so it can increment to +1
-        unsigned long long instanceStart = 0;
-
-        if (numNum <= 0)
-        {
-            pop();
-            return 0;
-        }
-
-        calcBounds(numNum, instanceStart, startValue);
-
-        unsigned long long upperBound = startValue + instanceStart;
-
-        //TODO switch order
-        differenceCover.push_back(startValue - 1); // the minus one is so that it is immidiately incremented to be normal
-        updateTest(differenceCover.back());
-        //TODO add back
-        //you need to adjust for having numbers at the end which affects the localp value max for each position
-
-        if (generateCover(localp, dSize - localdSize, upperBound))
-        {
-            //popLayer();
-
-            //return 1;
-        }
-
-        while (differenceCover.size() > dSize - localdSize)
-        {
-            pop();
-        }
+        exhaustiveSearch(localThird, localp, localdSize);
     }
 
     //this is the popback for the starting third
     pop();
+
+    return 0;
+}
+
+int exhaustiveSearch(int floor, int localp, int localdSize)
+{
+    if (localp - floor - 1 < localdSize)
+    {
+        return 0; //we return here because there is no hope for change
+    }
+
+    unsigned long long numNum = localp - localdSize - floor; //-1;
+    unsigned long long startValue = floor + 1;               //needs to be the same so it can increment to +1
+    unsigned long long instanceStart = 0;
+
+    if (numNum <= 0)
+    {
+        pop();
+        return 0;
+    }
+
+    calcBounds(numNum, instanceStart, startValue);
+
+    unsigned long long upperBound = startValue + instanceStart;
+
+    //TODO switch order
+    updateTest(startValue - 1);
+    differenceCover.push_back(startValue - 1); // the minus one is so that it is immidiately incremented to be normal
+
+    //TODO add back
+    //you need to adjust for having numbers at the end which affects the localp value max for each position
+
+    if (generateCover(localp, dSize - localdSize, upperBound))
+    {
+        //popLayer();
+
+        //return 1;
+    }
+
+    while (differenceCover.size() > dSize - localdSize)
+    {
+        pop();
+    }
+
     popLayer();
 
     return 0;

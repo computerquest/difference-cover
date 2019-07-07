@@ -33,6 +33,8 @@ unsigned long long nChoosek(unsigned long long n, unsigned long long k);
 
 int generateCover(int localp, int minSize, int stop);
 
+int exhaustiveSearch(int floor, int localp, int localdSize);
+
 bool check();
 
 #endif //DIFFERENCE_COVER_MAIN_H
