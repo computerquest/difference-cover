@@ -33,8 +33,6 @@ unsigned long long nChoosek(unsigned long long n, unsigned long long k);
 
 int generateCover(int localp, int minSize, int stop);
 
-vector<int> kthCombination(unsigned long long k, vector<int> l, int r);
-
 bool check();
 
 #endif //DIFFERENCE_COVER_MAIN_H

@@ -137,46 +137,6 @@ unsigned long long nChoosek(unsigned long long n, unsigned long long k)
     return r;
 }
 
-vector<int> kthCombination(unsigned long long k, vector<int> l, int r)
-{
-    if (r == 0)
-    {
-        vector<int> ans;
-        return ans;
-    }
-    else if (l.size() == r)
-    {
-        return l;
-    }
-    else
-    {
-        unsigned long long i = nChoosek(l.size() - 1, r - 1); //calculare number of combinations
-        if (k < i)
-        {
-            vector<int> ans;
-            ans.push_back(l[0]);
-
-            vector<int> tertiary(l.begin() + 1, l.end());
-
-            vector<int> secondary = kthCombination(k, tertiary, r - 1);
-
-            ans.insert(ans.end(), secondary.begin(), secondary.end());
-
-            return ans;
-        }
-        else
-        {
-            vector<int> ans;
-
-            vector<int> tertiary(l.begin() + 1, l.end());
-
-            vector<int> secondary = kthCombination(k - i, tertiary, r);
-
-            return secondary;
-        }
-    }
-}
-
 bool check()
 {
     struct stat b;
@@ -258,7 +218,7 @@ int main(int argc, char *argv[])
     groupNodes.push_back(nn);
     groupid.push_back(id);
 
-    testCover = vector<int>(startValue + numberToCompute-1, 0);
+    testCover = vector<int>(startValue + numberToCompute, 0);
 
     while (p < startValue + numberToCompute)
     {
@@ -869,9 +829,6 @@ void updateTest(int num)
         testCover[q]++;
         testCover[p - q]++;
     }
-
-    //TODO might not need because the number wouldn't have been added yet
-    testCover[0] = 1;
 }
 
 //exact same as isCover just the reverse
@@ -892,9 +849,6 @@ void undoTest(int num)
         testCover[q]--;
         testCover[p - q]--;
     }
-
-    //TODO might not need because the number would not have been added yet
-    testCover[0] = 1;
 }
 
 int isCover()
