@@ -345,7 +345,8 @@ void startSearch()
         cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " read " << dSize << " " << startingThird << endl;
     }
 
-    push(0);
+    differenceCover.push_back(0);
+    updateTest(0);
     push(1);
 
     while (dSize <= max)
@@ -697,7 +698,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
         //you need to adjust for having numbers at the end which affects the localp value max for each position
 
         if (generateCover(localp, dSize - localdSize, upperBound))
-        { //TODO make sure that setting the localp to p doesn't screw the recursion
+        {
             //popLayer();
 
             //return 1;
