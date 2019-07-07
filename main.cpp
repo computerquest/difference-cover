@@ -19,6 +19,9 @@
 
 using namespace std;
 
+//todo delete
+unsigned long long totalCover = 0;
+unsigned long long totalCheck = 0;
 ///////////////////////////////////////////////////GLOBALS///////////////////////////
 int p;
 int dSize;
@@ -286,6 +289,7 @@ int main(int argc, char *argv[])
 
     cout << "mpi was finalized" << endl;
 
+    cout << "total cover: " << totalCover << " total check " << totalCheck << endl;
     MPI_Finalize();
 
     return 0;
@@ -633,7 +637,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
             int localStartLock = differenceCover[differenceCover.size()-2];
 
-            cout << "Special Routing: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " perfect: " << perfect << " lock: " << lock << " locald: " << localdSize << " startingThird " << localThird << endl;
+            //cout << "Special Routing: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " perfect: " << perfect << " lock: " << lock << " locald: " << localdSize << " startingThird " << localThird << endl;
 
             if (perfect && localThird < int(p / 2) + 1 && localdSize == 1)
             {
@@ -657,7 +661,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             differenceCover.push_back(startValue-1);
             updateTest(differenceCover.back());
 
-            cout << "Thread(-): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << startValue << " end: " << upperBound <<" lower: " << numNum << " " << instanceStart << " " << startValue;
+            //cout << "Thread(-): " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << startValue << " end: " << upperBound <<" lower: " << numNum << " " << instanceStart << " " << startValue;
              {
                     cout << " | ";
                     for (int i = 0; i < differenceCover.size(); i++)
@@ -895,6 +899,12 @@ void undoTest(int num)
 
 int isCover()
 {
+    if(differenceCover.size() == dSize) {
+        totalCover++;
+    }
+
+    totalCheck++;
+
     int dif = dSize - differenceCover.size();
  
     //TODO this might still bewrong
