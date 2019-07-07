@@ -312,6 +312,7 @@ void startSearch()
         }
     }
 
+    differenceCover = vector<int>();
     differenceCover.reserve(max);
 
     dSize = min;
