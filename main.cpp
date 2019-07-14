@@ -536,14 +536,11 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         localdSize--;
 
-        cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the lock is start: " << startingGlobalLock << " end: " << globalUpperBound << " num: " << numGlobalNum << " localp: " << localp << " third: " << localThird << endl;
+        //cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the lock is start: " << startingGlobalLock << " end: " << globalUpperBound << " num: " << numGlobalNum << " localp: " << localp << " third: " << localThird << endl;
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++)
         {
             if (!push(lock))
             {
-                if(lock == 16) {
-                    cout << "couldn't push 16" << endl;
-                }
                 continue;
             }
             else if (differenceCover.size() == dSize)
@@ -613,7 +610,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
                 calcBounds(numNum, iters, startingLock);
 
-                cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the recursive bounds are start: " << startingLock << " end: " << startingLock + iters << " num: " << numNum << endl;
+                //cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the recursive bounds are start: " << startingLock << " end: " << startingLock + iters << " num: " << numNum << endl;
                 for (unsigned long long i = startingLock; i < startingLock+iters; i++)
                 {
                     if (searchCovers(i, localdSize, perfect)) //TODO add back || check())
@@ -693,12 +690,12 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
     //TODO add back
     //you need to adjust for having numbers at the end which affects the localp value max for each position
 
-    cout << "Thead: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << differenceCover.back() + 1 << " end: " << upperBound << " |";
+    /*cout << "Thead: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << differenceCover.back() + 1 << " end: " << upperBound << " |";
     for (int i = 0; i < differenceCover.size(); i++)
     {
         cout << " " << differenceCover[i];
     }
-    cout << endl;
+    cout << endl;*/
 
     if (generateCover(localp, dSize - localdSize, upperBound)) //todo is the minsize differenceCover.size()-1?
     {
