@@ -241,47 +241,52 @@ int main(int argc, char *argv[])
 
         startSearch();
 
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
+        unsigned long long *allChecked = NULL;
+        unsigned long long *allCover = NULL;
+
+        if (id == 0)
+        {
+            allChecked = new unsigned long long[nn];
+            allCover = new unsigned long long[nn];
+        }
+
+        MPI_Gather(&totalCheck, 1, MPI::UNSIGNED_LONG_LONG, allChecked, 1, MPI::UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD);
+        MPI_Gather(&totalCover, 1, MPI::UNSIGNED_LONG_LONG, allCover, 1, MPI::UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD);
+
+        if (id == 0)
+        {
+            cout << "TOTALS: " << endl;
+            unsigned long long tCheck = 0;
+            cout << "checked:";
+            for (int i = 0; i < nn; i++)
+            {
+                cout << " " << allChecked[i];
+                tCheck += allChecked[i];
+            }
+            cout << " total: " << tCheck << endl;
+
+            unsigned long long tCover = 0;
+            cout << "cover:";
+            for (int i = 0; i < nn; i++)
+            {
+                cout << " " << allCover[i];
+                tCover += allCover[i];
+            }
+            cout << " total: " << tCover << endl;
+
+            delete[] allChecked;
+            delete[] allCover;
+        }
+
+        totalCheck = 0;
+        totalCover = 0;
+
         p++;
     }
 
     cout << "Thread: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " is finished." << endl;
-
-    unsigned long long *allChecked = NULL;
-    unsigned long long *allCover = NULL;
-
-    if (id == 0)
-    {
-        allChecked = new unsigned long long[nn];
-        allCover = new unsigned long long[nn];
-    }
-
-    MPI_Gather(&totalCheck, 1, MPI::UNSIGNED_LONG_LONG, allChecked, 1, MPI::UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD);
-    MPI_Gather(&totalCover, 1, MPI::UNSIGNED_LONG_LONG, allCover, 1, MPI::UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD);
-
-    if (id == 0)
-    {
-        cout << "TOTALS: " << endl;
-        unsigned long long tCheck = 0;
-        cout << "checked:";
-        for (int i = 0; i < nn; i++)
-        {
-            cout << " " << allChecked[i];
-            tCheck += allChecked[i];
-        }
-        cout << " total: " << tCheck << endl;
-
-        unsigned long long tCover = 0;
-        cout << "cover:";
-        for (int i = 0; i < nn; i++)
-        {
-            cout << " " << allCover[i];
-            tCover += allCover[i];
-        }
-        cout << " total: " << tCover << endl;
-
-        delete[] allChecked;
-        delete[] allCover;
-    }
 
     MPI_Finalize();
 
@@ -611,7 +616,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 calcBounds(numNum, iters, startingLock);
 
                 //cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the recursive bounds are start: " << startingLock << " end: " << startingLock + iters << " num: " << numNum << endl;
-                for (unsigned long long i = startingLock; i < startingLock+iters; i++)
+                for (unsigned long long i = startingLock; i < startingLock + iters; i++)
                 {
                     if (searchCovers(i, localdSize, perfect)) //TODO add back || check())
                     {                                         //added check here in case none of the recursives have the time to check //TODO add back || check()
