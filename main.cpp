@@ -317,6 +317,7 @@ void startSearch()
 
     dSize = min;
 
+    //todo do i need this line?????
     unsigned long long totalCombo = nChoosek(p - 2, dSize - 2) / 2;
     int startingThird = int((p + 1) / 2) + 1;
 
@@ -450,10 +451,15 @@ void startSearch()
             }*/
         }
 
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
         if (check())
         {
             return;
         }
+
+        MPI_Barrier(MPI_COMM_WORLD); //this is to sync all the processes for the next wave
+
         startingThird = int((p + 1) / 2) + 1;
         dSize++;
     }
@@ -530,15 +536,18 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
         localdSize--;
 
+        cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the lock is start: " << startingGlobalLock << " end: " << globalUpperBound << " num: " << numGlobalNum << " localp: " << localp << " third: " << localThird << endl;
         for (unsigned long long lock = startingGlobalLock; lock < globalUpperBound; lock++)
         {
             if (!push(lock))
             {
+                if(lock == 16) {
+                    cout << "couldn't push 16" << endl;
+                }
                 continue;
             }
             else if (differenceCover.size() == dSize)
             {
-                popLayer();
 
                 //this is the individual write
                 ofstream indivOut;
@@ -582,13 +591,17 @@ int searchCovers(int localThird, int localdSize, bool perfect)
                 }
 
                 pop();
-                pop();
-                return 0;
+                continue;
+                //todo replace
+                //                pop();
+                //                popLayer();
+
+                //return 0;
             }
             //localdSize > 1 &&
             if (localdSize > 1 & (perfect = (perfect && lock == p + 1 - localThird)))
             { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
-                int numNum = lock - (localdSize)-localThird - 1;
+                int numNum = lock - (localdSize)-localThird;
                 unsigned long long startingLock = localThird + 1;
                 unsigned long long iters = 0;
 
@@ -600,7 +613,8 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
                 calcBounds(numNum, iters, startingLock);
 
-                for (unsigned long long i = startingLock + iters; i >= startingLock; i--)
+                cout << "Thread: " << id << " gid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " the recursive bounds are start: " << startingLock << " end: " << startingLock + iters << " num: " << numNum << endl;
+                for (unsigned long long i = startingLock; i < startingLock+iters; i++)
                 {
                     if (searchCovers(i, localdSize, perfect)) //TODO add back || check())
                     {                                         //added check here in case none of the recursives have the time to check //TODO add back || check()
@@ -633,7 +647,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             }
 
             exhaustiveSearch(localStartLock - 1, differenceCover.back(), localdSize);
-            
+
             pop(); //this is the popback for the lock
         }
 
@@ -650,6 +664,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
     return 0;
 }
 
+//TODO fix this it is causing a lot of covers to go missing (100% sure this is cause no matter what)
 int exhaustiveSearch(int floor, int localp, int localdSize)
 {
     if (localp - floor - 1 < localdSize)
@@ -678,7 +693,14 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
     //TODO add back
     //you need to adjust for having numbers at the end which affects the localp value max for each position
 
-    if (generateCover(localp, dSize - localdSize, upperBound))
+    cout << "Thead: " << id << " groupid: " << groupid.back() << " groupNodes: " << groupNodes.back() << " start: " << differenceCover.back() + 1 << " end: " << upperBound << " |";
+    for (int i = 0; i < differenceCover.size(); i++)
+    {
+        cout << " " << differenceCover[i];
+    }
+    cout << endl;
+
+    if (generateCover(localp, dSize - localdSize, upperBound)) //todo is the minsize differenceCover.size()-1?
     {
         //popLayer();
 
@@ -704,8 +726,10 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
  */
 int generateCover(int localp, int minSize, int stop)
 {
+    //todo remove redundant staements
     do
     {
+        //todo needed ?
         if (differenceCover.size() <= minSize)
         {
             return 0;
@@ -716,59 +740,57 @@ int generateCover(int localp, int minSize, int stop)
         //this is the part that fills the cover because it doesn't break after pushing it keeps boing getting higher and higher
         for (int i = 1; pval + i <= localp - (dSize - (differenceCover.size() + 1)) - 1; i++)
         { //the -1 should make it so that when another one is added it is still under the pval the other piece is to adjust localp for position (startingThird max value of 3 overall
-            if (push(pval + i))
-            {                                        //this is to make sure that this function does not exit before filling everything
-                if (differenceCover.size() == dSize) //TODO remove this
+            if (differenceCover.size() == minSize && pval + i == stop)
+            {
+                return 0;
+            }
+
+            if (push(pval + i) && differenceCover.size() == dSize)
+            { //this is to make sure that this function does not exit before filling everything
+                //this is the individual write
+                ofstream indivOut;
+                indivOut.open((pFile + ".txt").c_str(), ios::trunc);
+                for (int i = 0; i < differenceCover.size() - 1; i++)
                 {
-                    //this is the individual write
-                    ofstream indivOut;
-                    indivOut.open((pFile + ".txt").c_str(), ios::trunc);
-                    for (int i = 0; i < differenceCover.size() - 1; i++)
-                    {
-                        indivOut << differenceCover[i] << "   ";
-                    }
-                    indivOut << differenceCover.back();
-                    indivOut << endl;
-                    indivOut.flush();
-                    indivOut.close();
+                    indivOut << differenceCover[i] << "   ";
+                }
+                indivOut << differenceCover.back();
+                indivOut << endl;
+                indivOut.flush();
+                indivOut.close();
+
+                {
+                    //this is the all together write
+                    ofstream out;
+                    out.open(globalFile.c_str(), ios::app);
+                    out << p;
+                    out << "    " << differenceCover.size();
+                    out << "            ";
 
                     {
-                        //this is the all together write
-                        ofstream out;
-                        out.open(globalFile.c_str(), ios::app);
-                        out << p;
-                        out << "    " << differenceCover.size();
-                        out << "            ";
-
+                        int lastMin = -1;
+                        for (int x = 0; x < differenceCover.size(); x++)
                         {
-                            int lastMin = -1;
-                            for (int x = 0; x < differenceCover.size(); x++)
+                            int min = 100000;
+                            for (int i = 0; i < differenceCover.size(); i++)
                             {
-                                int min = 100000;
-                                for (int i = 0; i < differenceCover.size(); i++)
+                                if (min > differenceCover[i] && lastMin < differenceCover[i])
                                 {
-                                    if (min > differenceCover[i] && lastMin < differenceCover[i])
-                                    {
-                                        min = differenceCover[i];
-                                    }
+                                    min = differenceCover[i];
                                 }
-                                lastMin = min;
-                                out << min << "   ";
                             }
+                            lastMin = min;
+                            out << min << "   ";
                         }
-                        out << endl;
-                        out.flush();
-                        out.close();
                     }
-
-                    pop();
-
-                    //return 1;
+                    out << endl;
+                    out.flush();
+                    out.close();
                 }
-                else if (differenceCover.size() == minSize + 1 && differenceCover.back() == stop)
-                {
-                    return 0;
-                }
+
+                pop();
+
+                //return 1;
             }
         }
 
