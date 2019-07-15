@@ -1,7 +1,6 @@
 //
 // Created by jstigter on 6/10/19.
 //
-//TODO add all the mpi stuff back
 #include <string>
 #include "main.h"
 #include <vector>
@@ -322,8 +321,6 @@ void startSearch()
 
     dSize = min;
 
-    //todo do i need this line?????
-    unsigned long long totalCombo = nChoosek(p - 2, dSize - 2) / 2;
     int startingThird = int((p + 1) / 2) + 1;
 
     struct stat buffer;
@@ -472,9 +469,7 @@ void startSearch()
 
 int searchCovers(int localThird, int localdSize, bool perfect)
 {
-    //TODO smooth this out and get rid of it (this is a good temp fix)
     int localp = differenceCover.back();
-
     if (localp == 1)
     {
         localp = p;
@@ -522,9 +517,8 @@ int searchCovers(int localThird, int localdSize, bool perfect)
 
     localdSize--;
 
-    //TODO any returns need to have difference cover and the mpi id stuff pop before hand
     if (localThird < int((p + 1) / 2))
-    { //this is for below the half //TODO have ending function?
+    { //this is for below the half 
         //this is all init setup for splitting
         unsigned long long startingGlobalLock = p + 1 - localThird;
         unsigned long long globalIters = 0;
@@ -602,7 +596,7 @@ int searchCovers(int localThird, int localdSize, bool perfect)
             }
             //localdSize > 1 &&
             if (localdSize > 1 & (perfect = (perfect && lock == p + 1 - localThird)))
-            { //TODO make sure that this is correct. I want it to be that the lock is the perfect reflection of the starting third
+            { 
                 int numNum = lock - (localdSize)-localThird;
                 unsigned long long startingLock = localThird + 1;
                 unsigned long long iters = 0;
@@ -666,7 +660,6 @@ int searchCovers(int localThird, int localdSize, bool perfect)
     return 0;
 }
 
-//TODO fix this it is causing a lot of covers to go missing (100% sure this is cause no matter what)
 int exhaustiveSearch(int floor, int localp, int localdSize)
 {
     if (localp - floor - 1 < localdSize)
@@ -688,7 +681,6 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
 
     unsigned long long upperBound = startValue + instanceStart;
 
-    //TODO switch order
     updateTest(startValue - 1);
     differenceCover.push_back(startValue - 1); // the minus one is so that it is immidiately incremented to be normal
 
@@ -702,7 +694,7 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
     }
     cout << endl;*/
 
-    if (generateCover(localp, dSize - localdSize, upperBound)) //todo is the minsize differenceCover.size()-1?
+    if (generateCover(localp, dSize - localdSize, upperBound))
     {
         //popLayer();
 
@@ -724,19 +716,12 @@ int exhaustiveSearch(int floor, int localp, int localdSize)
  * it will increment the las number and see if it works
  * when it doesn't work it starts popping off
  * eventually this is done leaving only what is in bounds
- * TODO test
  */
 int generateCover(int localp, int minSize, int stop)
 {
     //todo remove redundant staements
     do
     {
-        //todo needed ?
-        if (differenceCover.size() <= minSize)
-        {
-            return 0;
-        }
-
         int pval = pop();
 
         //this is the part that fills the cover because it doesn't break after pushing it keeps boing getting higher and higher
@@ -745,9 +730,7 @@ int generateCover(int localp, int minSize, int stop)
             if (differenceCover.size() == minSize && pval + i == stop)
             {
                 return 0;
-            }
-
-            if (push(pval + i) && differenceCover.size() == dSize)
+            } else if (push(pval + i) && differenceCover.size() == dSize)
             { //this is to make sure that this function does not exit before filling everything
                 //this is the individual write
                 ofstream indivOut;
