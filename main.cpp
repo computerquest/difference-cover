@@ -652,18 +652,13 @@ void updateTest(int num)
 {
     for (int i = 0; i < differenceCover.size(); i++)
     {
-        int q = 0;
-        if (num < differenceCover[i])
-        {
-            q = differenceCover[i] - num;
-        }
-        else
-        {
-            q = num - differenceCover[i];
+        int q = abs(num-differenceCover[i]);
+        
+        if(q > int(p/2)) {
+            q = p-q;
         }
 
         testCover.at(q)++;
-        testCover.at(p - q)++;
     }
 }
 
@@ -672,18 +667,13 @@ void undoTest(int num)
 {
     for (int i = 0; i < differenceCover.size(); i++)
     {
-        int q = 0;
-        if (num < differenceCover[i])
-        {
-            q = differenceCover[i] - num;
-        }
-        else
-        {
-            q = num - differenceCover[i];
+        int q = abs(num-differenceCover[i]);
+        
+        if(q > int(p/2)) {
+            q = p-q;
         }
 
         testCover.at(q)--;
-        testCover.at(p - q)--;
     }
 }
 
@@ -699,7 +689,7 @@ int isCover()
     int dif = dSize - differenceCover.size();
 
     //got rid of the -1 for p because you get zero for free in the count so you would get the discount twice with the -1
-    if ((p) - (pow(dif, 2) + dif + dif * 2 * (differenceCover.size() - 1)) <= testSize())
+    if (int(p/2)-int(dif * (differenceCover.size()+(dif+1)/2.0-1)) <= testSize())
     {
         return 1;
     }
@@ -710,7 +700,7 @@ int isCover()
 int testSize()
 {
     int size = 0;
-    for (int i = 0; i < p; i++)
+    for (int i = 1; i <= int(p/2); i++)
     {
         if (testCover[i] != 0)
         {
@@ -720,3 +710,4 @@ int testSize()
 
     return size;
 }
+
