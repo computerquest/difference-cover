@@ -366,7 +366,7 @@ void startSearch()
                 myfile.close();
             }
 
-            if (searchCovers(i, dSize - 2, true) && testSize() == p)
+            if (searchCovers(i, dSize - 2, true))
             {
                 //this is the individual write
                 ofstream indivOut;
