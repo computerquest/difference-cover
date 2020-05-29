@@ -257,6 +257,8 @@ int main(int argc, char *argv[])
 
         if (id == 0)
         {
+	    ofstream count_out;
+	    count_out.open((outFile+"_count").c_str(), std::fstream::app);
             cout << "TOTALS: " << endl;
             unsigned long long tCheck = 0;
             cout << "checked:";
@@ -275,7 +277,8 @@ int main(int argc, char *argv[])
                 tCover += allCover[i];
             }
             cout << " total: " << tCover << endl;
-
+	    count_out << p << "," << tCheck << "," << tCover << endl;
+	    count_out.close();
             delete[] allChecked;
             delete[] allCover;
         }
