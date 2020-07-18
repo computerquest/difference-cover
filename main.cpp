@@ -273,6 +273,11 @@ int main(int argc, char *argv[])
             cout << endl;
 
             cout << tCover << "," << tCheck << endl;
+	    
+            ofstream count_out;
+	    count_out.open((outFile+"_count").c_str(), std::fstream::app);            
+            count_out << p << "," << tCheck << "," << tCover << endl;
+	    count_out.close();
 
             delete[] allChecked;
             delete[] allCover;
